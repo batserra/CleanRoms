@@ -12,7 +12,7 @@ function Show-Banner {
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "           BETA CLEAN ROMS v2.5           " -ForegroundColor Yellow
+    Write-Host ("           {0}           " -f (T "banner.title")) -ForegroundColor Yellow
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -24,18 +24,18 @@ function Show-Banner {
 
 function Select-MainAction {
 
-    Write-Host "Qué quieres hacer?"
+    Write-Host (T "menu.whatToDo")
     Write-Host ""
-    Write-Host " 1) Limpiar ROMs duplicadas"
-    Write-Host " 2) Deshacer la última limpieza"
-    Write-Host " 3) Limpiar imágenes/vídeos/manuales huérfanos"
-    Write-Host " 4) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas"
-    Write-Host " 5) Salir"
+    Write-Host (T "menu.option1")
+    Write-Host (T "menu.option2")
+    Write-Host (T "menu.option3")
+    Write-Host (T "menu.option4")
+    Write-Host (T "menu.option5")
     Write-Host ""
 
     do
     {
-        $option = Read-Host "Opción"
+        $option = Read-Host (T "menu.prompt")
     }
     until($option -match '^[12345]$')
 
@@ -49,7 +49,7 @@ function Select-MainAction {
 
 function Select-System {
 
-    Write-Host "Buscando sistemas con ROMs..." -ForegroundColor DarkGray
+    Write-Host (T "menu.searchingSystems") -ForegroundColor DarkGray
 
     $systems = @(
         Get-SupportedSystems | Where-Object {
@@ -61,14 +61,14 @@ function Select-System {
 
     if($systems.Count -eq 0)
     {
-        Write-Host "No se ha encontrado ninguna carpeta de sistema con ROMs." -ForegroundColor Yellow
-        Write-Host "(revisa la ruta de RetroBat configurada, o si tus ROMs usan una extensión que no está en la lista)"
+        Write-Host (T "menu.noSystemsFound") -ForegroundColor Yellow
+        Write-Host (T "menu.noSystemsHint")
         Write-Host ""
-        Read-Host "Pulse ENTER para continuar"
+        Read-Host (T "menu.pressEnterContinue")
         return "__NONE__"
     }
 
-    Write-Host "Seleccione sistema"
+    Write-Host (T "menu.selectSystem")
     Write-Host ""
 
     for($i=0;$i -lt $systems.Count;$i++)
@@ -77,12 +77,12 @@ function Select-System {
     }
 
     Write-Host ""
-    Write-Host (" 0) TODOS LOS SISTEMAS")
+    Write-Host (T "menu.allSystems")
     Write-Host ""
 
     do
     {
-        $option = Read-Host "Opción"
+        $option = Read-Host (T "menu.prompt")
     }
     until(
         ($option -match '^\d+$') -and
@@ -107,6 +107,6 @@ function Select-System {
 function Pause-End {
 
     Write-Host ""
-    Read-Host "Pulse ENTER para salir"
+    Read-Host (T "menu.pressEnterExit")
 
 }

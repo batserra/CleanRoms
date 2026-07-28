@@ -24,16 +24,16 @@ function Invoke-UndoLastPlan {
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "        DESHACER ÚLTIMA LIMPIEZA"
+    Write-Host (T "undo.title")
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 
     if(!(Test-Path -LiteralPath $jsonFile))
     {
-        Write-Host "No se encontró ningún plan anterior." -ForegroundColor Yellow
+        Write-Host (T "undo.noPlanFoundFull") -ForegroundColor Yellow
         Write-Host "($jsonFile)"
         Write-Host ""
-        Read-Host "Pulse ENTER para continuar"
+        Read-Host (T "menu.pressEnterContinue")
         return
     }
 
@@ -43,7 +43,7 @@ function Invoke-UndoLastPlan {
     }
     catch
     {
-        Write-Host "No se pudo leer el plan anterior (archivo dañado o vacío)." -ForegroundColor Red
+        Write-Host (T "undo.readError") -ForegroundColor Red
         return
     }
 
@@ -51,11 +51,11 @@ function Invoke-UndoLastPlan {
 
     if($moveActions.Count -eq 0)
     {
-        Write-Host "El último plan no contenía ningún movimiento que deshacer." -ForegroundColor Green
+        Write-Host (T "undo.nothingToUndo") -ForegroundColor Green
         return
     }
 
-    Write-Host "Se van a comprobar $($moveActions.Count) movimientos del último plan..."
+    Write-Host (T "undo.checking" $moveActions.Count)
     Write-Host ""
 
     $restored = 0
@@ -82,7 +82,7 @@ function Invoke-UndoLastPlan {
 
         if(Test-Path -LiteralPath $action.Source)
         {
-            Write-Host "[OMITIDO]    Ya existe algo en el origen:" -ForegroundColor Yellow
+            Write-Host (T "undo.occupiedSource") -ForegroundColor Yellow
             Write-Host "             $($action.Source)"
             $occupied++
             continue
@@ -97,15 +97,15 @@ function Invoke-UndoLastPlan {
 
         Move-Item -LiteralPath $currentPath -Destination $action.Source
 
-        Write-Host "[RESTAURADO] $($action.Source)" -ForegroundColor Green
+        Write-Host (T "undo.restored" $action.Source) -ForegroundColor Green
 
         $restored++
     }
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host ("Restaurados     : {0}" -f $restored)
-    Write-Host ("Sin cambios     : {0} (no se habían movido)" -f $notMoved)
-    Write-Host ("Omitidos        : {0} (ya había algo en el origen)" -f $occupied)
+    Write-Host (T "undo.restoredCount" $restored)
+    Write-Host (T "undo.notMovedCount" $notMoved)
+    Write-Host (T "undo.occupiedCount" $occupied)
     Write-Host "==========================================" -ForegroundColor Cyan
 }

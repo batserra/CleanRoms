@@ -33,7 +33,7 @@ $skippedExistsCount = 0
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "Ejecutando plan..."
+    Write-Host (T "exec.executing")
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 
@@ -92,25 +92,25 @@ Write-Host ("MOVE    : {0}" -f $moveCount) `
 
 if($movedOkCount -gt 0)
 {
-    Write-Host ("  Movidos correctamente     : {0}" -f $movedOkCount) `
+    Write-Host (T "exec.movedOk" $movedOkCount) `
         -ForegroundColor Yellow
 }
 
 if($previewCount -gt 0)
 {
-    Write-Host ("  Solo previsualizados      : {0} (modo PreviewOnly)" -f $previewCount) `
+    Write-Host (T "exec.previewOnly" $previewCount) `
         -ForegroundColor DarkYellow
 }
 
 if($skippedExistsCount -gt 0)
 {
-    Write-Host ("  SALTADOS (ya existían)    : {0}" -f $skippedExistsCount) `
+    Write-Host (T "exec.skippedExists" $skippedExistsCount) `
         -ForegroundColor Red
 }
 
 if($skippedMissingCount -gt 0)
 {
-    Write-Host ("  SALTADOS (no encontrados) : {0}" -f $skippedMissingCount) `
+    Write-Host (T "exec.skippedMissing" $skippedMissingCount) `
         -ForegroundColor Red
 }
 
@@ -128,7 +128,7 @@ Write-Progress `
     -Completed
 
     Write-Host ""
-    Write-Host "Plan completado."
+    Write-Host (T "exec.planCompleted")
 }
 
 function Invoke-CleanAction {
@@ -200,7 +200,7 @@ function Invoke-MoveAction {
 
     if(!(Test-Path -LiteralPath $Action.Source))
     {
-        Write-Warning "No existe el archivo:"
+        Write-Warning (T "exec.fileNotFound")
         Write-Warning $Action.Source
         return "SKIPPED_MISSING"
     }
@@ -231,7 +231,7 @@ function Invoke-MoveAction {
 
     if(Test-Path -LiteralPath $destination)
     {
-        Write-Warning "Ya existe:"
+        Write-Warning (T "exec.alreadyExists")
         Write-Warning $destination
         return "SKIPPED_EXISTS"
     }
@@ -246,7 +246,7 @@ function Invoke-MoveAction {
 
 if($Global:Settings.PreviewOnly)
 {
-    Write-Host "[PREVIEW MOVE] $($Action.Source)" -ForegroundColor DarkYellow
+    Write-Host (T "exec.previewMove" $Action.Source) -ForegroundColor DarkYellow
     return "PREVIEW"
 }
 
@@ -278,7 +278,7 @@ if($Global:Settings.PreviewOnly)
             }
             catch
             {
-                Write-Warning "No se pudo mover el archivo asociado: $($asset.FullName)"
+                Write-Warning (T "exec.assetMoveFailed" $asset.FullName)
             }
         }
     }
@@ -297,7 +297,7 @@ function Invoke-DeleteAction {
     Write-Host "[DELETE] $($Action.Source)" -ForegroundColor Red
 if($Global:Settings.PreviewOnly)
 {
-    Write-Host "[PREVIEW DELETE] $($Action.Source)" -ForegroundColor DarkRed
+    Write-Host (T "exec.previewDelete" $Action.Source) -ForegroundColor DarkRed
     return
 }
 
@@ -319,7 +319,7 @@ if($Global:Settings.PreviewOnly)
             }
             catch
             {
-                Write-Warning "No se pudo borrar el archivo asociado: $($asset.FullName)"
+                Write-Warning (T "exec.assetDeleteFailed" $asset.FullName)
             }
         }
     }
@@ -336,7 +336,7 @@ function Invoke-RenameAction {
 
 if($Global:Settings.PreviewOnly)
 {
-    Write-Host "[PREVIEW RENAME] $($Action.Source)" -ForegroundColor Cyan
+    Write-Host (T "exec.previewRename" $Action.Source) -ForegroundColor Cyan
     return
 }
 

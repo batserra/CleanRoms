@@ -23,7 +23,7 @@ $Global:RetroBatRoot = "C:\RetroBat\roms"
 # Configurar la ruta de RetroBat sin tener que editar el código
 #--------------------------------------------------------------
 
-function Initialize-RetroBatRoot {
+function Get-UserSettings {
 
     param(
         [Parameter(Mandatory)]
@@ -36,18 +36,97 @@ function Initialize-RetroBatRoot {
     {
         try
         {
-            $userConfig = Get-Content -LiteralPath $configFile -Raw | ConvertFrom-Json
-
-            if((-not [string]::IsNullOrWhiteSpace($userConfig.RetroBatRoot)) -and (Test-Path -LiteralPath $userConfig.RetroBatRoot))
-            {
-                $Global:RetroBatRoot = $userConfig.RetroBatRoot
-                return
-            }
+            return Get-Content -LiteralPath $configFile -Raw | ConvertFrom-Json
         }
         catch
         {
-            # Archivo de configuración dañado: se ignora y se vuelve a preguntar
+            # Archivo de configuración dañado: se ignora
         }
+    }
+
+    return [PSCustomObject]@{}
+
+}
+
+function Save-UserSettings {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Root,
+
+        [Parameter(Mandatory)]
+        $Settings
+    )
+
+    $configFile = Join-Path $Root "Config\UserSettings.json"
+    $configFolder = Split-Path $configFile -Parent
+
+    if(!(Test-Path -LiteralPath $configFolder))
+    {
+        New-Item -ItemType Directory -Path $configFolder -Force | Out-Null
+    }
+
+    $Settings | ConvertTo-Json | Set-Content $configFile
+
+}
+
+function Initialize-Language {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Root
+    )
+
+    $userConfig = Get-UserSettings -Root $Root
+
+    if(-not [string]::IsNullOrWhiteSpace($userConfig.Language))
+    {
+        $Global:Settings.Language = $userConfig.Language
+        return
+    }
+
+    #
+    # Primer arranque: no hay idioma guardado todavía. Este mensaje
+    # se muestra siempre en los dos idiomas a la vez, porque
+    # todavía no sabemos cuál prefiere la persona que lo está viendo.
+    #
+
+    Write-Host ""
+    Write-Host "Selecciona idioma / Select language:" -ForegroundColor Cyan
+    Write-Host " 1) Español"
+    Write-Host " 2) English"
+    Write-Host ""
+
+    do
+    {
+        $typed = Read-Host "Opción / Option"
+    }
+    until($typed -match '^[12]$')
+
+    $Global:Settings.Language = if($typed -eq "2") { "en" } else { "es" }
+
+    $userConfig | Add-Member -NotePropertyName "Language" -NotePropertyValue $Global:Settings.Language -Force
+    Save-UserSettings -Root $Root -Settings $userConfig
+
+    Write-Host ""
+    Write-Host (T "lang.saved" "Config\UserSettings.json") -ForegroundColor Green
+    Write-Host ""
+
+}
+
+function Initialize-RetroBatRoot {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Root
+    )
+
+    $userConfig = Get-UserSettings -Root $Root
+
+    if((-not [string]::IsNullOrWhiteSpace($userConfig.RetroBatRoot)) -and (Test-Path -LiteralPath $userConfig.RetroBatRoot))
+    {
+        $Global:RetroBatRoot = $userConfig.RetroBatRoot
+        return
     }
 
     #
@@ -59,11 +138,11 @@ function Initialize-RetroBatRoot {
     $suggested = Split-Path $Root -Parent
 
     Write-Host ""
-    Write-Host "Ruta de RetroBat no configurada todavía." -ForegroundColor Cyan
+    Write-Host (T "config.rootNotSet") -ForegroundColor Cyan
 
     do
     {
-        $typed = Read-Host "Ruta a la carpeta 'roms' de RetroBat [$suggested]"
+        $typed = Read-Host (T "config.rootPrompt" $suggested)
 
         if([string]::IsNullOrWhiteSpace($typed))
         {
@@ -76,7 +155,7 @@ function Initialize-RetroBatRoot {
 
         if(!(Test-Path -LiteralPath $candidate))
         {
-            Write-Host "Esa carpeta no existe, prueba otra vez." -ForegroundColor Yellow
+            Write-Host (T "config.folderNotExists") -ForegroundColor Yellow
             $candidate = $null
         }
     }
@@ -85,21 +164,14 @@ function Initialize-RetroBatRoot {
     $Global:RetroBatRoot = $candidate
 
     #
-    # Guardar para no volver a preguntar en próximas ejecuciones
+    # Guardar para no volver a preguntar en próximas ejecuciones,
+    # conservando cualquier otro ajuste ya guardado (p.ej. Language)
     #
 
-    $configFolder = Split-Path $configFile -Parent
+    $userConfig | Add-Member -NotePropertyName "RetroBatRoot" -NotePropertyValue $candidate -Force
+    Save-UserSettings -Root $Root -Settings $userConfig
 
-    if(!(Test-Path -LiteralPath $configFolder))
-    {
-        New-Item -ItemType Directory -Path $configFolder -Force | Out-Null
-    }
-
-    [PSCustomObject]@{ RetroBatRoot = $candidate } |
-        ConvertTo-Json |
-        Set-Content $configFile
-
-    Write-Host "Guardado. La próxima vez no hará falta volver a indicarlo." -ForegroundColor Green
+    Write-Host (T "config.rootSaved") -ForegroundColor Green
     Write-Host ""
 }
 
@@ -114,6 +186,8 @@ $Global:DuplicatesFolder = "_duplicates"
 #--------------------------------------------------------------
 
 $Global:Settings = @{
+
+    Language         = "es"
 
     PreviewOnly      = $false
 

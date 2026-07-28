@@ -60,7 +60,7 @@ function Scan-Roms {
 
     Write-Host ""
     Write-Host "================================="
-    Write-Host " ESCANEANDO ROMS"
+    Write-Host (T "scan.header")
     Write-Host "================================="
     Write-Host ""
 
@@ -68,7 +68,7 @@ function Scan-Roms {
 
     $files = @(Get-RomFiles $Folder)
 
-    Write-Host ("Archivos encontrados : {0}" -f $files.Count)
+    Write-Host (T "scan.filesFound" $files.Count)
     Write-Host ""
 
     $result = New-Object System.Collections.Generic.List[object]
@@ -101,8 +101,8 @@ function Scan-Roms {
     $sw.Stop()
 
     Write-Host ""
-    Write-Host ("ROMs procesadas      : {0}" -f $result.Count)
-    Write-Host ("Tiempo empleado      : {0:N2} segundos" -f $sw.Elapsed.TotalSeconds)
+    Write-Host (T "scan.romsProcessed" $result.Count)
+    Write-Host (T "scan.timeTaken" ("{0:N2}" -f $sw.Elapsed.TotalSeconds))
     Write-Host ""
 
     return $result

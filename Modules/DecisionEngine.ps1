@@ -477,10 +477,10 @@ function Resolve-RomTie {
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Magenta
-    Write-Host "   EMPATE: no se puede decidir en automático"
+    Write-Host (T "tie.title")
     Write-Host "==========================================" -ForegroundColor Magenta
     Write-Host ""
-    Write-Host "Estas dos copias tienen la misma puntuación ($($A.Score)) y ningún criterio las diferencia:"
+    Write-Host (T "tie.explanation" $A.Score)
     Write-Host ""
     Write-Host " 1) $($A.FullPath)"
     Write-Host " 2) $($B.FullPath)"
@@ -488,7 +488,7 @@ function Resolve-RomTie {
 
     do
     {
-        $choice = Read-Host "¿Cuál quieres conservar? (1/2)"
+        $choice = Read-Host (T "tie.ask")
     }
     until($choice -match '^[12]$')
 

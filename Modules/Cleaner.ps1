@@ -72,15 +72,14 @@ function Invoke-RomCleaning {
     Initialize-SevenZipSupport
 
     $groups = @()
-    $Global:DiagnosticoMostrado = $false
 
     foreach($folder in $SystemFolders)
     {
         $systemName = Split-Path $folder -Leaf
 
         Write-Host ""
-        Write-Host "Sistema : $systemName"
-        Write-Host "Carpeta : $folder"
+        Write-Host (T "scan.system" $systemName)
+        Write-Host (T "scan.folder" $folder)
 
         if(!(Test-Path -LiteralPath $folder))
         {
@@ -90,7 +89,7 @@ function Invoke-RomCleaning {
 
         $roms = @(Get-RomsFromFolder $folder)
 
-        Write-Host "ROMs encontradas : $($roms.Count)"
+        Write-Host (T "scan.romsFound" $roms.Count)
 
         if($roms.Count -eq 0)
         {
@@ -99,74 +98,16 @@ function Invoke-RomCleaning {
 
         $roms = Update-NormalizedTitles $roms
 
-        if(-not $Global:DiagnosticoMostrado)
-        {
-            Write-Host ""
-            Write-Host "----- DIAGNOSTICO -----" -ForegroundColor Magenta
-
-            $roms | Select-Object -First 5 | ForEach-Object {
-                Write-Host ("Title            : {0}" -f $_.Title)
-                Write-Host ("NormalizedTitle  : '{0}'" -f $_.NormalizedTitle)
-                Write-Host ("Hack/Trans/Beta/Proto/Demo/Home/Pirate/Sample/Preview/Kiosk : {0}/{1}/{2}/{3}/{4}/{5}/{6}/{7}/{8}/{9}" -f `
-                    $_.Hack, $_.Translation, $_.Beta, $_.Prototype, $_.Demo, $_.Homebrew, $_.Pirate, $_.Sample, $_.Preview, $_.Kiosk)
-                Write-Host ""
-            }
-
-            $totalRoms = @($roms).Count
-            $vacioONulo = @($roms | Where-Object { [string]::IsNullOrWhiteSpace($_.NormalizedTitle) }).Count
-            $conHack = @($roms | Where-Object { $_.Hack }).Count
-            $conTranslation = @($roms | Where-Object { $_.Translation }).Count
-            $conBeta = @($roms | Where-Object { $_.Beta }).Count
-            $conProto = @($roms | Where-Object { $_.Prototype }).Count
-            $conDemo = @($roms | Where-Object { $_.Demo }).Count
-            $conHomebrew = @($roms | Where-Object { $_.Homebrew }).Count
-            $conPirate = @($roms | Where-Object { $_.Pirate }).Count
-            $conSample = @($roms | Where-Object { $_.Sample }).Count
-            $conPreview = @($roms | Where-Object { $_.Preview }).Count
-            $conKiosk = @($roms | Where-Object { $_.Kiosk }).Count
-            $pasanFiltro = @($roms | Where-Object {
-                (-not [string]::IsNullOrWhiteSpace($_.NormalizedTitle)) -and
-                (-not $_.Hack) -and (-not $_.Translation) -and (-not $_.Beta) -and
-                (-not $_.Prototype) -and (-not $_.Demo) -and (-not $_.Homebrew) -and
-                (-not $_.Pirate) -and (-not $_.Sample) -and (-not $_.Preview) -and (-not $_.Kiosk)
-            }).Count
-            $titulosUnicos = @($roms | Where-Object {
-                (-not [string]::IsNullOrWhiteSpace($_.NormalizedTitle)) -and
-                (-not $_.Hack) -and (-not $_.Translation) -and (-not $_.Beta) -and
-                (-not $_.Prototype) -and (-not $_.Demo) -and (-not $_.Homebrew) -and
-                (-not $_.Pirate) -and (-not $_.Sample) -and (-not $_.Preview) -and (-not $_.Kiosk)
-            } | Select-Object -ExpandProperty NormalizedTitle -Unique).Count
-
-            Write-Host ("Total ROMs                    : {0}" -f $totalRoms)
-            Write-Host ("NormalizedTitle vacio/nulo     : {0}" -f $vacioONulo)
-            Write-Host ("Excluidas por Hack             : {0}" -f $conHack)
-            Write-Host ("Excluidas por Translation      : {0}" -f $conTranslation)
-            Write-Host ("Excluidas por Beta             : {0}" -f $conBeta)
-            Write-Host ("Excluidas por Prototype        : {0}" -f $conProto)
-            Write-Host ("Excluidas por Demo             : {0}" -f $conDemo)
-            Write-Host ("Excluidas por Homebrew         : {0}" -f $conHomebrew)
-            Write-Host ("Excluidas por Pirate           : {0}" -f $conPirate)
-            Write-Host ("Excluidas por Sample           : {0}" -f $conSample)
-            Write-Host ("Excluidas por Preview          : {0}" -f $conPreview)
-            Write-Host ("Excluidas por Kiosk            : {0}" -f $conKiosk)
-            Write-Host ("ROMs que pasan el filtro       : {0}" -f $pasanFiltro)
-            Write-Host ("Titulos normalizados unicos    : {0}" -f $titulosUnicos)
-            Write-Host "------------------------------------------" -ForegroundColor Magenta
-            Write-Host ""
-
-            $Global:DiagnosticoMostrado = $true
-        }
-
         $sysGroups = @(Group-Roms $roms)
 
-        Write-Host "Grupos encontrados : $($sysGroups.Count)"
+        Write-Host (T "scan.groupsFound" $sysGroups.Count)
 
         $groups += $sysGroups
     }
 
     Write-Host ""
     Write-Host "-----------------------------------------"
-    Write-Host "Grupos totales : $($groups.Count)"
+    Write-Host (T "scan.totalGroups" $groups.Count)
     Write-Host ""
 
     #--------------------------------------------------------------
@@ -176,7 +117,7 @@ function Invoke-RomCleaning {
     if($groups.Count -eq 0)
     {
         Write-Host ""
-        Write-Host "No se han encontrado ROMs duplicadas. Nada que limpiar." -ForegroundColor Green
+        Write-Host (T "scan.noDuplicatesFound") -ForegroundColor Green
         Write-Host ""
 
         $actions = @()
@@ -219,10 +160,10 @@ function Invoke-RomCleaning {
         -OutputFolder (Join-Path $Root "Resultado")
 
     Write-Host ""
-    Write-Host "Plan exportado en:"
+    Write-Host (T "plan.exportedTo")
     Write-Host "  - $($exported.Json)"
     Write-Host "  - $($exported.Csv)"
-    Write-Host "  - $($exported.Html)  (informe visual, ábrelo con el navegador)"
+    Write-Host (T "plan.htmlHint" $exported.Html)
 
     #--------------------------------------------------------------
     # Confirmación
@@ -231,7 +172,7 @@ function Invoke-RomCleaning {
     if($plan.Actions.Count -eq 0)
     {
         Write-Host ""
-        Write-Host "No hay ninguna acción que ejecutar."
+        Write-Host (T "plan.nothingToExecute")
         return
     }
 
@@ -239,12 +180,12 @@ function Invoke-RomCleaning {
     {
         Write-Host ""
 
-        $answer = Read-Host "¿Ejecutar el plan? (S/N)"
+        $answer = Read-Host (T "plan.confirmMove")
 
-        if($answer -notmatch '^[Ss]$')
+        if($answer -notmatch (T "confirm.yesPattern"))
         {
             Write-Host ""
-            Write-Host "Operación cancelada."
+            Write-Host (T "plan.operationCancelled")
             return
         }
     }
@@ -265,8 +206,6 @@ function Invoke-CleanPreview {
         [array]$Groups
     )
 
-    Pause
-
     $actions = @()
 
     foreach($group in $Groups)
@@ -278,8 +217,8 @@ function Invoke-CleanPreview {
 
         Write-Host ""
         Write-Host "===================================="
-        Write-Host "GRUPO:" $group.Name
-        Write-Host "ROMS :" $group.Roms.Count
+        Write-Host (T "group.label") $group.Name
+        Write-Host (T "group.romCount") $group.Roms.Count
 
         #
         # Decision Engine
@@ -376,7 +315,7 @@ function Show-CleanPreview {
 
     Write-Host ""
     Write-Host "==============================================" -ForegroundColor Cyan
-    Write-Host "             PREVISUALIZACIÓN"
+    Write-Host (T "plan.previewTitle")
     Write-Host "==============================================" -ForegroundColor Cyan
     Write-Host ""
 
@@ -409,10 +348,10 @@ function Show-CleanPreview {
 
         if($action.Target)
         {
-            Write-Host "Destino : $($action.Target)"
+            Write-Host (T "plan.destination" $action.Target)
         }
 
-        Write-Host "Motivo:"
+        Write-Host (T "plan.reason")
         Write-Host $action.Reason
 
         Write-Host ""

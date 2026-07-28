@@ -162,7 +162,7 @@ function Invoke-OrphanedMediaCleanup {
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "     IMÁGENES / VÍDEOS / MANUALES HUÉRFANOS"
+    Write-Host (T "media.header")
     Write-Host "==========================================" -ForegroundColor Cyan
 
     $allOrphans = @()
@@ -170,11 +170,12 @@ function Invoke-OrphanedMediaCleanup {
     foreach($folder in $SystemFolders)
     {
         Write-Host ""
-        Write-Host "Revisando: $folder"
+        Write-Host (T "media.scanning" $folder)
 
         $found = @(Find-OrphanedMedia -SystemFolder $folder)
 
-        Write-Host "  Huérfanos encontrados: $($found.Count)"
+        $foundText = T "media.found" $found.Count
+        Write-Host "  $foundText"
 
         $allOrphans += $found
     }
@@ -183,12 +184,12 @@ function Invoke-OrphanedMediaCleanup {
 
     if($allOrphans.Count -eq 0)
     {
-        Write-Host "No se ha encontrado ninguna imagen o vídeo huérfano." -ForegroundColor Green
+        Write-Host (T "media.noneFound") -ForegroundColor Green
         return
     }
 
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "         PREVISUALIZACIÓN"
+    Write-Host (T "media.previewTitle")
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 
@@ -197,22 +198,22 @@ function Invoke-OrphanedMediaCleanup {
         $target = Get-OrphanedMediaTargetFolder -Orphan $orphan
 
         Write-Host "[MOVE] $($orphan.Source)"
-        Write-Host "       Sistema : $($orphan.System)   Tipo : $($orphan.MediaType)"
-        Write-Host "       Destino : $target"
+        Write-Host (T "media.system" @($orphan.System, $orphan.MediaType))
+        Write-Host (T "media.destination" $target)
         Write-Host ""
     }
 
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host ("Total huérfanos encontrados : {0}" -f $allOrphans.Count)
+    Write-Host (T "media.totalFound" $allOrphans.Count)
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 
-    $answer = Read-Host "¿Mover estos archivos a la carpeta de respaldo '$($Global:DuplicatesFolder)'? (S/N)"
+    $answer = Read-Host (T "media.confirmFolder" $Global:DuplicatesFolder)
 
-    if($answer -notmatch '^[Ss]$')
+    if($answer -notmatch (T "confirm.yesPattern"))
     {
         Write-Host ""
-        Write-Host "Operación cancelada. No se ha movido nada."
+        Write-Host (T "media.cancelled")
         return
     }
 
@@ -234,7 +235,7 @@ function Invoke-OrphanedMediaCleanup {
 
         if(Test-Path -LiteralPath $destination)
         {
-            Write-Host "[SALTADO] Ya existe en el respaldo: $destination" -ForegroundColor Yellow
+            Write-Host (T "media.alreadyBackedUp" $destination) -ForegroundColor Yellow
             $skippedCount++
             continue
         }
@@ -247,17 +248,17 @@ function Invoke-OrphanedMediaCleanup {
 
         Move-Item -LiteralPath $orphan.Source -Destination $destination
 
-        Write-Host "[MOVIDO] $($orphan.Source)" -ForegroundColor Yellow
+        Write-Host (T "media.moved" $orphan.Source) -ForegroundColor Yellow
 
         $movedCount++
     }
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host ("Movidos  : {0}" -f $movedCount)
-    Write-Host ("Saltados : {0}" -f $skippedCount)
+    Write-Host (T "media.movedCount" $movedCount)
+    Write-Host (T "media.skippedCount" $skippedCount)
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Nada se ha borrado: si algo no era huérfano de verdad, puedes"
-    Write-Host "devolverlo a mano desde '$($Global:DuplicatesFolder)'."
+    Write-Host (T "media.nothingDeleted")
+    Write-Host (T "media.nothingDeletedFull" $Global:DuplicatesFolder)
 }

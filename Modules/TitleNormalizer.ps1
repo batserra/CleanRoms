@@ -325,7 +325,7 @@ function Get-TitleAliasMap {
         }
         catch
         {
-            Write-Host "Aviso: no se pudo leer Config\TitleAliases.json, se ignoran los alias de título." -ForegroundColor DarkYellow
+            Write-Host (T "alias.loadFailed") -ForegroundColor DarkYellow
         }
     }
 

@@ -613,12 +613,12 @@ function Initialize-SevenZipSupport {
     if($null -ne $found)
     {
         $Global:SevenZipPath = $found
-        Write-Host "7-Zip detectado: $found" -ForegroundColor DarkGray
+        Write-Host (T "sevenzip.detected" $found) -ForegroundColor DarkGray
     }
     else
     {
         $Global:SevenZipPath = $null
-        Write-Host "7-Zip no detectado en el PATH. Los archivos .7z se procesarán solo por su nombre, sin mirar su contenido." -ForegroundColor DarkYellow
+        Write-Host (T "sevenzip.notDetected") -ForegroundColor DarkYellow
     }
 
     $Global:SevenZipChecked = $true

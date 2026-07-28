@@ -10,8 +10,10 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 #=========================================================
 
 . "$Root\Config\Settings.ps1"
+. "$Root\Config\Strings.ps1"
 . "$Root\Config\DecisionWeights.ps1"
 
+Initialize-Language -Root $Root
 Initialize-RetroBatRoot -Root $Root
 
 #=========================================================
@@ -120,8 +122,8 @@ switch($mainAction)
 
         Write-Host ""
         Write-Host "==========================================" -ForegroundColor Cyan
-        Write-Host "   LIMPIEZA TOTAL: ROMs + imágenes/vídeos/manuales"
-        Write-Host "   (TODOS los sistemas)"
+        Write-Host (T "menu.totalCleanTitle")
+        Write-Host (T "menu.totalCleanAllSystems")
         Write-Host "==========================================" -ForegroundColor Cyan
 
         Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
@@ -132,7 +134,7 @@ switch($mainAction)
 }
 
 Write-Host ""
-Read-Host "Pulse ENTER para volver al menú principal"
+Read-Host (T "menu.pressEnterMainMenu")
 
 }
 

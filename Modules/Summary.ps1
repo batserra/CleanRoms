@@ -15,7 +15,7 @@ function Show-CleanSummary {
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "           RESUMEN DE LIMPIEZA" -ForegroundColor Yellow
+    Write-Host (T "summary.title") -ForegroundColor Yellow
     Write-Host "==========================================" -ForegroundColor Cyan
 
     Show-SystemSummary $Plan
@@ -54,7 +54,7 @@ function Show-SystemSummary {
         Sort-Object -Unique
 
     Write-Host ""
-    Write-Host "Sistema(s):" -ForegroundColor Yellow
+    Write-Host (T "summary.systems") -ForegroundColor Yellow
 
     foreach($system in $systems)
     {
@@ -100,10 +100,10 @@ function Show-StatisticsSummary {
     param($Plan)
 
     Write-Host ""
-    Write-Host "Estadísticas" -ForegroundColor Yellow
+    Write-Host (T "summary.stats") -ForegroundColor Yellow
     Write-Host "------------------------------------------"
 
-    Write-Host ("Total acciones : {0}" -f $Plan.TotalActions)
+    Write-Host (T "summary.totalActions" $Plan.TotalActions)
     Write-Host ("KEEP           : {0}" -f $Plan.TotalKeep)
     Write-Host ("MOVE           : {0}" -f $Plan.TotalMove)
     Write-Host ("DELETE         : {0}" -f $Plan.TotalDelete)
@@ -111,12 +111,12 @@ function Show-StatisticsSummary {
 
     if($Plan.PSObject.Properties.Match("BuildDate").Count -gt 0)
     {
-        Write-Host ("Fecha          : {0}" -f $Plan.BuildDate)
+        Write-Host (T "summary.date" $Plan.BuildDate)
     }
 
     if($Plan.PSObject.Properties.Match("Version").Count -gt 0)
     {
-        Write-Host ("Versión        : {0}" -f $Plan.Version)
+        Write-Host (T "summary.version" $Plan.Version)
     }
 
 }
@@ -135,21 +135,21 @@ function Show-WarningsSummary {
 
     if($Plan.TotalMove -eq 0)
     {
-        $warnings += "No se han encontrado ROMs duplicadas."
+        $warnings += (T "summary.noDuplicates").TrimStart(' ', '-')
     }
 
     if($Plan.TotalActions -eq 0)
     {
-        $warnings += "El plan está vacío."
+        $warnings += (T "summary.emptyPlan").TrimStart(' ', '-')
     }
 
     if($warnings.Count -eq 0)
     {
-        Write-Host "No hay advertencias." -ForegroundColor Green
+        Write-Host (T "summary.noWarnings") -ForegroundColor Green
         return
     }
 
-    Write-Host "Advertencias" -ForegroundColor Yellow
+    Write-Host (T "summary.warnings") -ForegroundColor Yellow
     Write-Host "------------------------------------------"
 
     foreach($warning in $warnings)
@@ -158,7 +158,7 @@ function Show-WarningsSummary {
     }
 
     Write-Host ""
-    Read-Host "Aviso importante arriba en amarillo. Pulse ENTER para continuar"
+    Read-Host (T "summary.importantNotice")
 
 }
 
