@@ -18,6 +18,7 @@ Import-Module "$Root\Config\Settings.ps1"
 Import-Module "$Root\Config\DecisionWeights.ps1"
 
 . "$Root\Config\Settings.ps1"
+. "$Root\Config\Strings.ps1"
 . "$Root\Config\DecisionWeights.ps1"
 
 . "$Root\Modules\RomParser.ps1"
@@ -25,6 +26,7 @@ Import-Module "$Root\Config\DecisionWeights.ps1"
 . "$Root\Modules\TitleNormalizer.ps1"
 . "$Root\Modules\Grouper.ps1"
 . "$Root\Modules\DecisionEngine.ps1"
+. "$Root\Modules\MediaCleaner.ps1"
 
 . "$PSScriptRoot\TestHelper.ps1"
 

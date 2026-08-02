@@ -11,11 +11,23 @@
 # agrupación: nunca se comparan con otras copias, nunca entran en
 # el motor de decisión, y por tanto nunca se mueven ni se renombran.
 #
-# Estas etiquetas indican contenido genuinamente distinto de la
-# versión final/retail (una beta o un prototipo no son "la misma
-# ROM con peor nombre", son una versión distinta que un coleccionista
-# puede querer conservar aparte), así que nunca se tratan como
-# duplicado de la versión normal, aunque compartan título.
+# Para Hack se usa específicamente NamedHack (solo la palabra
+# "Hack" en sí, p.ej. "(Hack)", "(SMW1 Hack)") y no el flag Hack
+# genérico, que también incluye códigos de dump estilo GoodTools
+# como "[h1]"/"[hI]"/"[h1C]" — esos casi siempre son solo una
+# modificación técnica de cabecera (no un hack de juego real) y sí
+# deben poder agruparse y compararse con la copia limpia. El flag
+# Hack genérico se sigue usando para la puntuación (sección 2 del
+# manual), penalizando levemente esas copias sin excluirlas del
+# todo.
+#
+# Las ROMs marcadas como Beta, Prototype, Demo, Homebrew, Pirate,
+# Sample, Preview o Kiosk representan contenido genuinamente
+# distinto de la versión final/retail (una beta o un prototipo no
+# son "la misma ROM con peor nombre", son una versión distinta que
+# un coleccionista puede querer conservar aparte), así que nunca se
+# tratan como duplicado de la versión normal, aunque compartan
+# título.
 #
 # ============================================================
 
@@ -35,7 +47,7 @@ function Group-Roms {
     $groups = $Roms |
         Where-Object {
             (-not [string]::IsNullOrWhiteSpace($_.NormalizedTitle)) -and
-            (-not $_.Hack) -and
+            (-not $_.NamedHack) -and
             (-not $_.Translation) -and
             (-not $_.Beta) -and
             (-not $_.Prototype) -and

@@ -74,12 +74,14 @@ function Initialize-Language {
 
     param(
         [Parameter(Mandatory)]
-        [string]$Root
+        [string]$Root,
+
+        [switch]$Force
     )
 
     $userConfig = Get-UserSettings -Root $Root
 
-    if(-not [string]::IsNullOrWhiteSpace($userConfig.Language))
+    if((-not $Force) -and (-not [string]::IsNullOrWhiteSpace($userConfig.Language)))
     {
         $Global:Settings.Language = $userConfig.Language
         return
@@ -108,22 +110,20 @@ function Initialize-Language {
     $userConfig | Add-Member -NotePropertyName "Language" -NotePropertyValue $Global:Settings.Language -Force
     Save-UserSettings -Root $Root -Settings $userConfig
 
-    Write-Host ""
-    Write-Host (T "lang.saved" "Config\UserSettings.json") -ForegroundColor Green
-    Write-Host ""
-
 }
 
 function Initialize-RetroBatRoot {
 
     param(
         [Parameter(Mandatory)]
-        [string]$Root
+        [string]$Root,
+
+        [switch]$Force
     )
 
     $userConfig = Get-UserSettings -Root $Root
 
-    if((-not [string]::IsNullOrWhiteSpace($userConfig.RetroBatRoot)) -and (Test-Path -LiteralPath $userConfig.RetroBatRoot))
+    if((-not $Force) -and (-not [string]::IsNullOrWhiteSpace($userConfig.RetroBatRoot)) -and (Test-Path -LiteralPath $userConfig.RetroBatRoot))
     {
         $Global:RetroBatRoot = $userConfig.RetroBatRoot
         return
@@ -192,6 +192,20 @@ $Global:Settings = @{
     PreviewOnly      = $false
 
     MoveAssets       = $true
+
+    #
+    # Verificacion por hash (SHA256/MD5): compara el contenido real
+    # de los archivos, no solo el nombre. Se usa siempre (barato,
+    # solo 2 archivos) para resolver un empate total sin tener que
+    # preguntar, y opcionalmente (VerifyHashOnMove) para anotar en
+    # cada movimiento si el contenido es idéntico o no al que se
+    # conserva. Activarlo para todos los movimientos puede ralentizar
+    # colecciones muy grandes, porque hay que leer el archivo entero.
+    #
+
+    VerifyHashOnMove = $false
+
+    HashAlgorithm    = "MD5"
 
     CreateLog        = $true
 

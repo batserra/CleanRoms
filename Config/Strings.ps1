@@ -23,7 +23,8 @@ $Global:Strings = @{
         "menu.option2"              = " 2) Deshacer la última limpieza"
         "menu.option3"              = " 3) Limpiar imágenes/vídeos/manuales huérfanos"
         "menu.option4"              = " 4) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas"
-        "menu.option5"              = " 5) Salir"
+        "menu.option5"              = " 5) Configuración (ruta de RetroBat / idioma)"
+        "menu.option6"              = " 6) Salir"
         "menu.prompt"               = "Opción"
         "menu.searchingSystems"     = "Buscando sistemas con ROMs..."
         "menu.noSystemsFound"       = "No se ha encontrado ninguna carpeta de sistema con ROMs."
@@ -35,6 +36,15 @@ $Global:Strings = @{
         "menu.pressEnterMainMenu"   = "Pulse ENTER para volver al menú principal"
         "menu.totalCleanTitle"      = "   LIMPIEZA TOTAL: ROMs + imágenes/vídeos/manuales"
         "menu.totalCleanAllSystems" = "   (TODOS los sistemas)"
+
+        # ---------- Menú de configuración ----------
+        "config.menuTitle"          = "== Configuración =="
+        "config.menuPath"           = "Ruta de RetroBat actual : {0}"
+        "config.menuLanguage"       = "Idioma actual           : {0}"
+        "config.opt1"               = " 1) Cambiar la ruta de RetroBat"
+        "config.opt2"               = " 2) Cambiar el idioma"
+        "config.opt3"               = " 3) Cambiar ambas cosas"
+        "config.opt0"               = " 0) Volver al menú principal"
 
         # ---------- Idioma (primer arranque) ----------
         "lang.prompt.title"         = "Selecciona idioma / Select language:"
@@ -119,6 +129,10 @@ $Global:Strings = @{
         "tie.title"                 = "   EMPATE: no se puede decidir en automático"
         "tie.explanation"           = "Estas dos copias tienen la misma puntuación ({0}) y ningún criterio las diferencia:"
         "tie.ask"                   = "¿Cuál quieres conservar? (1/2)"
+        "tie.identicalContent"      = "Contenido idéntico (mismo hash {0}): no hace falta preguntar, se conserva una de las dos."
+        "tie.differentContent"      = "Aviso: el contenido de los dos archivos NO es idéntico (hash {0} distinto), aunque coincidan en todo lo demás."
+        "hash.identical"            = "Contenido idéntico al conservado ({0})"
+        "hash.different"            = "Contenido distinto al conservado ({0}) — revisar si de verdad es un duplicado"
         "sevenzip.detected"         = "7-Zip detectado: {0}"
         "sevenzip.notDetected"      = "7-Zip no detectado en el PATH. Los archivos .7z se procesarán solo por su nombre, sin mirar su contenido."
         "config.folderNotExists"    = "Esa carpeta no existe, prueba otra vez."
@@ -152,6 +166,7 @@ $Global:Strings = @{
         # ---------- Confirmaciones genéricas ----------
         "plan.destination"           = "Destino : {0}"
         "plan.reason"                = "Motivo:"
+        "plan.hash"                  = "{0} : {1}"
         "confirm.yes"                = "S"
         "confirm.yesNoHint"          = "(S/N)"
         "confirm.yesPattern"         = "^[Ss]$"
@@ -168,7 +183,8 @@ $Global:Strings = @{
         "menu.option2"              = " 2) Undo the last cleanup"
         "menu.option3"              = " 3) Clean up orphaned images/videos/manuals"
         "menu.option4"              = " 4) ALL: Move ROMs and images/videos/manuals for EVERY system"
-        "menu.option5"              = " 5) Exit"
+        "menu.option5"              = " 5) Configuration (RetroBat path / language)"
+        "menu.option6"              = " 6) Exit"
         "menu.prompt"               = "Option"
         "menu.searchingSystems"     = "Looking for systems with ROMs..."
         "menu.noSystemsFound"       = "No system folder with ROMs was found."
@@ -180,6 +196,15 @@ $Global:Strings = @{
         "menu.pressEnterMainMenu"   = "Press ENTER to return to the main menu"
         "menu.totalCleanTitle"      = "   FULL CLEANUP: ROMs + images/videos/manuals"
         "menu.totalCleanAllSystems" = "   (ALL systems)"
+
+        # ---------- Configuration menu ----------
+        "config.menuTitle"          = "== Configuration =="
+        "config.menuPath"           = "Current RetroBat path : {0}"
+        "config.menuLanguage"       = "Current language      : {0}"
+        "config.opt1"               = " 1) Change the RetroBat path"
+        "config.opt2"               = " 2) Change the language"
+        "config.opt3"               = " 3) Change both"
+        "config.opt0"               = " 0) Back to the main menu"
 
         # ---------- Language (first run) ----------
         "lang.prompt.title"         = "Selecciona idioma / Select language:"
@@ -264,6 +289,10 @@ $Global:Strings = @{
         "tie.title"                 = "   TIE: cannot decide automatically"
         "tie.explanation"           = "These two copies have the same score ({0}) and no criterion tells them apart:"
         "tie.ask"                   = "Which one do you want to keep? (1/2)"
+        "tie.identicalContent"      = "Identical content (same {0} hash): no need to ask, one of the two is kept."
+        "tie.differentContent"      = "Notice: the content of the two files is NOT identical (different {0} hash), even though everything else matches."
+        "hash.identical"            = "Identical content to the kept file ({0})"
+        "hash.different"            = "Different content from the kept file ({0}) — check whether it's really a duplicate"
         "sevenzip.detected"         = "7-Zip detected: {0}"
         "sevenzip.notDetected"      = "7-Zip not found in PATH. .7z files will be processed by their file name only, without looking inside."
         "config.folderNotExists"    = "That folder doesn't exist, try again."
@@ -297,6 +326,7 @@ $Global:Strings = @{
         # ---------- Generic confirmations ----------
         "plan.destination"           = "Destination : {0}"
         "plan.reason"                = "Reason:"
+        "plan.hash"                  = "{0} : {1}"
         "confirm.yes"                = "Y"
         "confirm.yesNoHint"          = "(Y/N)"
         "confirm.yesPattern"         = "^[Yy]$"

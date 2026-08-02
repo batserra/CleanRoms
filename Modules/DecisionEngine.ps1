@@ -475,12 +475,34 @@ function Resolve-RomTie {
         $B
     )
 
+    #
+    # Antes de preguntar, comprobamos si el contenido es
+    # exactamente idéntico (hash). Si lo es, no importa cuál se
+    # conserve — se elige sin molestar, y se deja constancia en
+    # pantalla de por qué no hizo falta preguntar.
+    #
+
+    $identical = Test-RomsIdenticalContent -PathA $A.FullPath -PathB $B.FullPath
+
+    if($identical -eq $true)
+    {
+        Write-Host ""
+        Write-Host (T "tie.identicalContent" $Global:Settings.HashAlgorithm) -ForegroundColor DarkGray
+        return $A
+    }
+
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Magenta
     Write-Host (T "tie.title")
     Write-Host "==========================================" -ForegroundColor Magenta
     Write-Host ""
     Write-Host (T "tie.explanation" $A.Score)
+
+    if($identical -eq $false)
+    {
+        Write-Host (T "tie.differentContent" $Global:Settings.HashAlgorithm) -ForegroundColor Yellow
+    }
+
     Write-Host ""
     Write-Host " 1) $($A.FullPath)"
     Write-Host " 2) $($B.FullPath)"
@@ -659,10 +681,26 @@ function Decide-RomGroup {
 
         if($rom.FullPath -ne $keep.FullPath){
 
+            $reason = Get-DecisionReason $rom
+
+            if($Global:Settings.VerifyHashOnMove)
+            {
+                $identical = Test-RomsIdenticalContent -PathA $keep.FullPath -PathB $rom.FullPath
+
+                if($identical -eq $true)
+                {
+                    $reason += (T "hash.identical" $Global:Settings.HashAlgorithm)
+                }
+                elseif($identical -eq $false)
+                {
+                    $reason += (T "hash.different" $Global:Settings.HashAlgorithm)
+                }
+            }
+
             $move += [PSCustomObject]@{
 
                 Rom    = $rom
-                Reason = Get-DecisionReason $rom
+                Reason = $reason
 
             }
 

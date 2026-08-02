@@ -53,7 +53,7 @@ Show-Banner
 
 $mainAction = Select-MainAction
 
-if($mainAction -eq 5)
+if($mainAction -eq 6)
 {
     break mainLoop
 }
@@ -129,6 +129,12 @@ switch($mainAction)
         Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
 
         Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+    }
+
+    5
+    {
+        Show-ConfigMenu -Root $Root
+        continue mainLoop
     }
 
 }

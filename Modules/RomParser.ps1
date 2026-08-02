@@ -19,7 +19,8 @@ $Global:RegionPatterns = @{
         '\[ESP\]',
         '\bESP\b',
         'Spanish',
-        'Español'
+        'Español',
+        '\bSpain\b'
     )
 
     EUR = @(
@@ -27,6 +28,7 @@ $Global:RegionPatterns = @{
         '\[E\]',
         '\(EU\)',
         '\(EUR\)',
+        '\(UE\)',
         'Europe'
     )
 
@@ -124,6 +126,17 @@ $Global:FlagPatterns = @{
 
     Hack       = '\[h.*?\]|Hack'
 
+    #
+    # Version mas estricta: solo la palabra "Hack" en si (p.ej.
+    # "(Hack)", "(SMW1 Hack)"), NO los codigos de dump tipo GoodTools
+    # "[h1]"/"[hI]"/"[h1C]" que casi siempre son solo una modificacion
+    # tecnica de cabecera y no un hack de juego real. Se usa para
+    # decidir si una ROM se EXCLUYE de la agrupacion (Grouper.ps1);
+    # el patron "Hack" de arriba se sigue usando para la puntuacion.
+    #
+
+    NamedHack  = '\bHack\b'
+
     Translation = '\[T[\+\-].*?\]|T\([A-Za-z]{2,3}\)|Traducci[oó]n|\bTranslation\b|\bTrans\b'
 
     Beta       = 'Beta'
@@ -147,6 +160,60 @@ $Global:FlagPatterns = @{
 # ============================================================
 # Crear objeto ROM
 # ============================================================
+
+function Get-RomHash {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+
+        [string]$Algorithm = $Global:Settings.HashAlgorithm
+    )
+
+    if([string]::IsNullOrWhiteSpace($Algorithm))
+    {
+        $Algorithm = "SHA256"
+    }
+
+    if(!(Test-Path -LiteralPath $Path))
+    {
+        return $null
+    }
+
+    try
+    {
+        return (Get-FileHash -LiteralPath $Path -Algorithm $Algorithm).Hash
+    }
+    catch
+    {
+        # Archivo bloqueado, sin permisos, etc.: no se puede verificar
+        return $null
+    }
+
+}
+
+function Test-RomsIdenticalContent {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$PathA,
+
+        [Parameter(Mandatory)]
+        [string]$PathB
+    )
+
+    $hashA = Get-RomHash -Path $PathA
+    $hashB = Get-RomHash -Path $PathB
+
+    if([string]::IsNullOrWhiteSpace($hashA) -or [string]::IsNullOrWhiteSpace($hashB))
+    {
+        # No se pudo calcular alguno de los dos: no afirmamos nada
+        return $null
+    }
+
+    return ($hashA -eq $hashB)
+
+}
 
 function New-RomObject {
 
@@ -190,6 +257,8 @@ function New-RomObject {
         BadDump = $false
 
         Hack = $false
+
+        NamedHack = $false
 
         Translation = $false
 
@@ -378,6 +447,8 @@ function Get-RomFlags {
         BadDump    = Test-RomPattern $Title $Global:FlagPatterns.BadDump
 
         Hack       = Test-RomPattern $Title $Global:FlagPatterns.Hack
+
+        NamedHack  = Test-RomPattern $Title $Global:FlagPatterns.NamedHack
 
         Translation = Test-RomPattern $Title $Global:FlagPatterns.Translation
 
@@ -805,6 +876,7 @@ function Parse-Rom {
     $rom.Verified  = $flags.Verified
     $rom.BadDump   = $flags.BadDump
     $rom.Hack      = $flags.Hack
+    $rom.NamedHack = $flags.NamedHack
     $rom.Translation = $flags.Translation
     $rom.Beta      = $flags.Beta
     $rom.Prototype = $flags.Prototype
@@ -827,6 +899,7 @@ function Parse-Rom {
     if($folderPath -match "Hack")
     {
         $rom.Hack = $true
+        $rom.NamedHack = $true
     }
 
     if($folderPath -match "Traduc|Translation")

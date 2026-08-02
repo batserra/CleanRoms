@@ -31,15 +31,57 @@ function Select-MainAction {
     Write-Host (T "menu.option3")
     Write-Host (T "menu.option4")
     Write-Host (T "menu.option5")
+    Write-Host (T "menu.option6")
     Write-Host ""
 
     do
     {
         $option = Read-Host (T "menu.prompt")
     }
-    until($option -match '^[12345]$')
+    until($option -match '^[123456]$')
 
     return [int]$option
+}
+
+
+#--------------------------------------------------------------
+# Menú de configuración
+#--------------------------------------------------------------
+
+function Show-ConfigMenu {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Root
+    )
+
+    Write-Host ""
+    Write-Host (T "config.menuTitle")
+    Write-Host ""
+    Write-Host (T "config.menuPath" $Global:RetroBatRoot)
+    Write-Host (T "config.menuLanguage" $Global:Settings.Language)
+    Write-Host ""
+    Write-Host (T "config.opt1")
+    Write-Host (T "config.opt2")
+    Write-Host (T "config.opt3")
+    Write-Host (T "config.opt0")
+    Write-Host ""
+
+    do
+    {
+        $option = Read-Host (T "menu.prompt")
+    }
+    until($option -match '^[0123]$')
+
+    switch($option)
+    {
+        "1" { Initialize-RetroBatRoot -Root $Root -Force }
+        "2" { Initialize-Language -Root $Root -Force }
+        "3" {
+            Initialize-RetroBatRoot -Root $Root -Force
+            Initialize-Language -Root $Root -Force
+        }
+    }
 }
 
 

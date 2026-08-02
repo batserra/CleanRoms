@@ -52,6 +52,8 @@ function New-TestRom {
 
         [bool]$Hack = $false,
 
+        [bool]$NamedHack = $Hack,
+
         [bool]$Translation = $false,
 
         [bool]$Beta = $false,
@@ -100,6 +102,8 @@ function New-TestRom {
         BadDump = $BadDump
 
         Hack = $Hack
+
+        NamedHack = $NamedHack
 
         Translation = $Translation
 

@@ -27,6 +27,8 @@ function New-CleanAction {
 
     )
 
+    $hash = Get-RomHash -Path $Rom.FullPath
+
     return [PSCustomObject]@{
 
         Action = $Action
@@ -38,6 +40,8 @@ function New-CleanAction {
         Target = $Target
 
         Reason = $Reason
+
+        Hash = $hash
 
         TimeStamp = Get-Date
 
@@ -354,6 +358,11 @@ function Show-CleanPreview {
         Write-Host (T "plan.reason")
         Write-Host $action.Reason
 
+        if($action.Hash)
+        {
+            Write-Host (T "plan.hash" @($Global:Settings.HashAlgorithm, $action.Hash))
+        }
+
         Write-Host ""
     }
 }
@@ -494,7 +503,8 @@ function Export-CleanPlan {
             Action,
             Source,
             Target,
-            Reason |
+            Reason,
+            @{Name = $Global:Settings.HashAlgorithm; Expression = { $_.Hash }} |
         Export-Csv `
             -Path $csvFile `
             -NoTypeInformation `
@@ -558,8 +568,9 @@ function New-CleanPlanHtmlReport {
         $source = Convert-HtmlSafe $action.Source
         $target = Convert-HtmlSafe $action.Target
         $reason = Convert-HtmlSafe ($action.Reason -replace "`n", " · ")
+        $hash   = Convert-HtmlSafe $action.Hash
 
-        $rows += "<tr class=`"$rowClass`"><td>$($action.Action)</td><td>$source</td><td>$target</td><td>$reason</td></tr>`n"
+        $rows += "<tr class=`"$rowClass`"><td>$($action.Action)</td><td>$source</td><td>$target</td><td>$reason</td><td class=`"hash`">$hash</td></tr>`n"
     }
 
     $keepCount   = @($Plan.Actions | Where-Object { $_.Action -eq "KEEP" }).Count
@@ -594,6 +605,7 @@ function New-CleanPlanHtmlReport {
     tr.delete td:first-child { color:#c62828; font-weight:bold; }
     tr.rename td:first-child { color:#1565c0; font-weight:bold; }
     tr:hover { background:#f0f4f8; }
+    td.hash { font-family: Consolas, 'Courier New', monospace; font-size:11px; color:#555; }
 </style>
 </head>
 <body>
@@ -607,7 +619,7 @@ function New-CleanPlanHtmlReport {
     </div>
     <table>
         <thead>
-            <tr><th>Acción</th><th>Archivo</th><th>Destino</th><th>Motivo</th></tr>
+            <tr><th>Acción</th><th>Archivo</th><th>Destino</th><th>Motivo</th><th>$($Global:Settings.HashAlgorithm)</th></tr>
         </thead>
         <tbody>
 $rows
