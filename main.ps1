@@ -33,6 +33,7 @@ Initialize-RetroBatRoot -Root $Root
 . "$Root\Modules\AssetMover.ps1"
 . "$Root\Modules\UndoManager.ps1"
 . "$Root\Modules\MediaCleaner.ps1"
+. "$Root\Modules\HackOrganizer.ps1"
 
 
 
@@ -53,7 +54,7 @@ Show-Banner
 
 $mainAction = Select-MainAction
 
-if($mainAction -eq 6)
+if($mainAction -eq 7)
 {
     break mainLoop
 }
@@ -116,6 +117,31 @@ switch($mainAction)
 
     4
     {
+        Write-Host ""
+
+        $system = Select-System
+
+        if($system -eq "__NONE__")
+        {
+            continue mainLoop
+        }
+
+        if($system -eq "__ALL__")
+        {
+            $systemFolders = @(
+                Get-SupportedSystems | ForEach-Object { Get-SystemFolder $_ }
+            )
+        }
+        else
+        {
+            $systemFolders = @(Get-SystemFolder $system)
+        }
+
+        Invoke-HackOrganizer -SystemFolders $systemFolders
+    }
+
+    5
+    {
         $systemFolders = @(
             Get-SupportedSystems | ForEach-Object { Get-SystemFolder $_ }
         )
@@ -129,9 +155,11 @@ switch($mainAction)
         Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
 
         Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+
+        Invoke-HackOrganizer -SystemFolders $systemFolders
     }
 
-    5
+    6
     {
         Show-ConfigMenu -Root $Root
         continue mainLoop

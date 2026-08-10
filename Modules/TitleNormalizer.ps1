@@ -6,7 +6,7 @@
 #
 # ============================================================
 
-function Normalize-Title {
+function Get-CoreNormalizedTitle {
 
     param(
         [Parameter(Mandatory)]
@@ -258,6 +258,17 @@ function Normalize-Title {
     $t = $t -replace "\s+"," "
     $t = $t.Trim()
 
+    return $t
+
+}
+
+function Normalize-Title {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Title
+    )
+
     #----------------------------------------------------------
     # Alias de título (Config\TitleAliases.json)
     #
@@ -270,6 +281,8 @@ function Normalize-Title {
     # resolver con una regla general sin arriesgar falsos
     # positivos, así que se mantienen en una lista editable.
     #----------------------------------------------------------
+
+    $t = Get-CoreNormalizedTitle -Title $Title
 
     $aliases = Get-TitleAliasMap
 

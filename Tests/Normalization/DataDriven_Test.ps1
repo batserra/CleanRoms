@@ -96,3 +96,42 @@ foreach($case in $Global:TestCases)
         }
     }
 }
+
+# ============================================================
+# Integridad de Config\TitleAliases.json
+#
+# Cada clave y cada valor del archivo de alias debe ser ya la
+# forma normalizada ACTUAL (sin pasar por el propio alias), es
+# decir: Get-CoreNormalizedTitle($clave) -eq $clave. Si no lo es,
+# significa que las reglas de normalización cambiaron después de
+# generar ese alias y la clave ya no se puede alcanzar nunca
+# (esto es justo lo que pasó con Narnia, Gekido, Yu-Gi-Oh y Raid
+# en distintos momentos). También comprueba que ningún valor sea
+# a su vez una clave (cadena de alias sin aplanar).
+# ============================================================
+
+$aliasMap = Get-TitleAliasMap
+
+foreach($key in $aliasMap.Keys)
+{
+    $recomputed = Get-CoreNormalizedTitle -Title $key
+
+    Assert-Equal `
+        $key `
+        $recomputed `
+        ("[AliasIntegrity] La clave '{0}' ya no coincide con su propia forma normalizada (alias obsoleto, revisar Config\TitleAliases.json)" -f $key)
+
+    $value = $aliasMap[$key]
+
+    $recomputedValue = Get-CoreNormalizedTitle -Title $value
+
+    Assert-Equal `
+        $value `
+        $recomputedValue `
+        ("[AliasIntegrity] El valor '{0}' (de la clave '{1}') ya no coincide con su propia forma normalizada" -f $value, $key)
+
+    Assert-Equal `
+        $false `
+        $aliasMap.ContainsKey($value) `
+        ("[AliasIntegrity] '{0}' -> '{1}' es una cadena sin aplanar (el valor es a su vez otra clave)" -f $key, $value)
+}

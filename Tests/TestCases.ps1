@@ -191,6 +191,42 @@ $Global:TestCases = @(
     },
 
     @{
+        Name = "Alias: Yu-Gi-Oh Ultimate Masters (subtitulo truncado, confirmado por MD5)"
+        Type = "Match"
+        Files = @(
+            "Yu-Gi-Oh! - Ultimate Masters Edition [E].gba",
+            "Yu-Gi-Oh! - Ultimate Masters Edition World Championship Tournament 2006 (E) (M5).gba"
+        )
+    },
+
+    @{
+        Name = "Alias: Yu-Gi-Oh Sacred Cards (typo Yi vs Yu + traduccion, confirmado por MD5)"
+        Type = "Match"
+        Files = @(
+            "Yi-Gi-Oh! - Las cartas sagradas [E].gba",
+            "Yu-Gi-Oh! - The Sacred Cards (E) (M5).gba"
+        )
+    },
+
+    @{
+        Name = "Alias: Raid !!! / Raid Over Moscow (confirmado por MD5)"
+        Type = "Match"
+        Files = @(
+            "Raid !!! (Europe).dsk",
+            "Raid Over Moscow (UK) (1985).dsk"
+        )
+    },
+
+    @{
+        Name = "Alias: Flintstones Yabba Dabba Doo (confirmado por MD5)"
+        Type = "Match"
+        Files = @(
+            "Flintstones - Yabba Dabba Doo (UK) (1988).dsk",
+            "Yabba Dabba Doo! (Europe).dsk"
+        )
+    },
+
+    @{
         Name = "Alias: Advance Wars 2 (nombre abreviado sin subtitulo)"
         Type = "Match"
         Files = @(
