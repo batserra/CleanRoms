@@ -1,140 +1,155 @@
-Beta CleanROMs v2.5
-===================
+BETA CLEANROMS
+==============
+Version 2.6 (BETA)
 
-A PowerShell command-line tool that finds duplicate ROMs inside a RetroBat
-installation, automatically keeps the best copy of each game, and moves the
-rest to a backup folder (it never deletes anything). It can also clean up
-orphaned images, videos, and manuals left behind by removed ROMs.
-
-STATUS: BETA. This is being actively tested and may still contain bugs or
-unexpected behavior. See "Reporting issues" below.
+  This application is in BETA. It may still contain bugs or
+  unexpected behavior.
 
 
-What it does
+WHAT IT DOES
 ------------
-For each system folder you choose:
+CleanROMs is a command-line (PowerShell) tool for detecting duplicate
+ROMs inside a RetroBat installation. For each group of duplicate
+copies of the same game, it automatically keeps the best one and
+moves the rest to a backup folder (it never deletes anything). It can
+also clean up orphaned images, videos, and manuals left behind by
+ROMs that were already removed, and undo the last cleanup it ran.
 
-1. Scans it for files with a recognized ROM extension (110+ extensions,
-   60+ systems supported: Nintendo, Sega, Sony, arcade, home computers...).
-2. Parses each file name (and, for .zip/.7z archives containing a single
-   ROM, the inner file name too) to extract region, language, version,
-   revision, and special flags (Hack, Beta, Prototype, Demo, Homebrew,
-   Pirate, Sample, Preview, Kiosk).
-3. Normalizes the title and groups copies that are the same game, ignoring
-   those tags -- with a manual alias file for the cases where the name
-   genuinely changes between regions (e.g. an official Spanish translation
-   with a different title).
-4. Scores every copy in a group (region, language, dump quality, version...)
-   and picks the best one.
-5. Shows you the full plan -- what's kept, what's moved, and why -- before
-   touching anything.
-6. Only on confirmation, moves the non-winning copies to _duplicates\,
-   along with any associated file they had (save file, controller config...).
-
-ROMs tagged as Hack, Fan Translation, Beta, Prototype, Demo, Homebrew,
-Pirate, Sample, Preview, or Kiosk are never compared, moved, or touched --
-they're treated as genuinely different content worth keeping, not
-duplicates of the retail release.
+Development of this program started with ChatGPT (GPT-5.5) and was
+completed and debugged with Claude, Anthropic's AI assistant, through
+several rounds of real-world testing on large collections (several
+thousand ROMs per system, 13,600+ ROMs across 35 systems in the most
+recent full test).
 
 
-Requirements
+MAIN FEATURES
+-------------
+- Scores every copy of a game by region, language, dump quality
+  ([!]/[b]), status (Beta/Prototype/Demo/...), version, and revision,
+  and keeps the highest-scoring one.
+- Hacks, fan translations, Betas, Prototypes, Demos, Homebrew,
+  Pirates, Samples, Previews, and Kiosks are always excluded from
+  comparison and never moved automatically.
+- Recognizes region/language/version tags, underscore-style names,
+  and Roman numerals so that renamed or reformatted copies of the
+  same game are still grouped together.
+- Optional title-alias dictionary (Config\TitleAliases.json) for
+  games whose name genuinely changes between languages or editions
+  (e.g. official Spanish titles).
+- Moves associated files (save files, per-game controller configs)
+  together with the ROM they belong to.
+- Detects and organizes loose hacked ROMs into their own
+  "# Hacks y Otros #" folder inside each system, and can also find
+  exact byte-for-byte duplicate hacks inside that folder.
+- Cleans up orphaned images/videos/manuals left behind by removed
+  ROMs (ScreenScraper/RetroBat naming conventions).
+- PreviewOnly simulation mode: see exactly what would happen before
+  anything is touched.
+- Full JSON/CSV/HTML reports and a complete session log on every run.
+- Can undo the last cleanup, restoring files to their original
+  location.
+- Available in Spanish and English.
+- Never deletes files. Ever. Everything goes to a backup folder
+  (_duplicates\) that you can review or restore from at any time.
+
+
+REQUIREMENTS
 ------------
-- PowerShell 7.3 or later (Windows PowerShell 5.1, which ships with
-  Windows by default, is NOT supported):
+- PowerShell 7.3 or later. Windows PowerShell 5.1 (the one that ships
+  with Windows by default) is NOT enough.
   https://github.com/PowerShell/PowerShell/releases
-- Optional: 7-Zip, to inspect the contents of .7z archives when region/
-  language tags are only present on the inner file name. Auto-detected;
-  not required.
+- Optional: 7-Zip, if you want region/language detection to look
+  inside .7z archives too.
 
 
-Installation
+INSTALLATION
 ------------
-Copy the whole "CleanRoms" folder inside the "roms" folder of your RetroBat
-installation. Then either right-click main.ps1 and choose "Run with
-PowerShell 7", or from a terminal:
+1. Copy the entire "CleanRoms" folder inside the "roms" folder of
+   your RetroBat installation.
+2. Right-click main.ps1 and choose "Run with PowerShell 7", or from a
+   terminal:
 
-    cd "C:\RetroBat\roms\CleanRoms"
-    .\main.ps1
+     cd "C:\RetroBat\roms\CleanRoms"
+     .\main.ps1
 
-On first run it will ask you to pick a language (Spanish/English) and the
-path to your RetroBat "roms" folder -- both are saved in
-Config\UserSettings.json so you won't be asked again.
+If you already had a previous version installed, delete the whole
+CleanRoms folder before extracting the new one -- some unzip tools
+don't overwrite existing files by default (in particular
+Config\TitleAliases.json), and you could end up with a mix of
+versions.
 
-IMPORTANT: if you're updating from a previous version, delete the old
-CleanRoms folder completely before extracting the new one. Some unzip
-tools don't overwrite existing files by default, which can leave you with
-a mix of old and new files (in particular Config\TitleAliases.json).
+The first time you run it, it will ask for your RetroBat "roms" path
+and your preferred language, and will remember both from then on
+(Config\UserSettings.json).
 
 
-The main menu
+QUICK USAGE
+-----------
+On startup you get a simple menu:
+
+  1) Clean up duplicate ROMs
+  2) Undo the last cleanup
+  3) Clean up orphaned images/videos/manuals
+  4) ALL: Move ROMs and images/videos/manuals for every system
+
+Nothing is ever moved without you reviewing the full plan first and
+confirming with "Y". Turn on PreviewOnly in Config\Settings.ps1 the
+first time you try it on a new collection to see the plan without
+touching any file.
+
+
+CONFIGURATION
 -------------
-    1) Clean up duplicate ROMs
-    2) Undo the last cleanup
-    3) Clean up orphaned images/videos/manuals
-    4) ALL: Move ROMs and images/videos/manuals for every system
+Almost everything is controlled from plain text/JSON files inside
+Config\, no code changes needed:
 
-Every action shows a full preview and asks for confirmation before moving
-or deleting anything. Nothing is ever permanently deleted -- files are
-moved to a _duplicates\ backup folder, and option 2 can put them back.
-
-A PreviewOnly setting (Config\Settings.ps1) lets you run everything as a
-dry run, useful the first time you try it on a new collection.
-
-
-Configuration
--------------
-Everything lives under Config\, plain text, editable with any text editor:
-
-- UserSettings.json   Your RetroBat path and chosen language.
-- Settings.ps1        Recognized systems and extensions, ignored folders,
-                       recognized media suffixes, and behavior flags
-                       (PreviewOnly, MoveAssets, RemoveDuplicates...).
-- DecisionWeights.ps1  The full scoring tables (region, language, dump
-                       quality, version, revision) -- freely adjustable.
-- TitleAliases.json    Manual mappings for titles that genuinely change
-                       between editions/languages and can't be resolved
-                       by stripping tags alone (see the full manual).
+  Config\Settings.ps1         General behavior (PreviewOnly,
+                               MoveAssets, supported systems and
+                               extensions, ignored folders...)
+  Config\DecisionWeights.ps1  The scoring tables (region, language,
+                               dump quality, version, revision...)
+  Config\TitleAliases.json    Manual title aliases for games whose
+                               name genuinely changes between
+                               languages/editions
+  Config\UserSettings.json    Your RetroBat path and chosen language
 
 
-Reports and logs
+WHAT'S NEW IN 2.6
+------------------
+- ROM version and revision (V1.1, Rev A...) are now actually
+  detected from the file name and feed into the scoring system --
+  previously this scoring table existed but had no real effect.
+- "[BIOS]" and similar tags are no longer mistaken for a bad dump
+  ([b]) and incorrectly penalized.
+- Duplicate hacks found inside "# Hacks y Otros #" now move to the
+  correct system's duplicates folder instead of occasionally creating
+  a stray "_duplicates\# Hacks y Otros #\" folder.
+- The confirmation prompt for moving duplicate hacks now explains
+  that these are byte-identical files and that this particular step
+  cannot be undone with the "Undo the last cleanup" menu option.
+
+See the full user manual for details on every feature and on the
+exact scoring/tie-break rules.
+
+
+REPORTING ISSUES
 -----------------
-Every run exports, in Resultado\:
-- CleanPlan.json  Full plan detail (also used by "Undo").
-- CleanPlan.csv   Summary for Excel.
-- CleanPlan.html  Visual report with stats and a color-coded table.
+This program is still being tested. If you find a bug or want a
+feature added or removed, please email as much detail as you can
+(what you did, what you expected, what happened instead) to:
 
-Every full session is also logged to Logs\CleanROMs_<date>.log.
+  batserra@gmail.com
 
+Repository: https://github.com/batserra/CleanRoms2
 
-Documentation
--------------
-A full user manual (in Spanish) covering the scoring system, tie-break
-rules, the title normalization/alias system, associated-file handling,
-configuration reference, supported systems, and real test results is
-included in the repository.
+If the issue involves ROMs not grouping as expected, or files
+disappearing without explanation, please attach the session log
+(Logs\CleanROMs_<date>.log) and, if possible, a file listing of the
+affected folder (e.g. dir /s /b > listing.txt).
 
 
-Reporting issues
+LICENSE / STATUS
 -----------------
-This is a BETA. If you hit a bug or want a feature added or removed,
-please email as much detail as you can (what you did, what you expected,
-what happened instead) to:
-
-    batserra@gmail.com
-
-If the issue involves ROMs not grouping as expected, or files disappearing
-without explanation, please attach the log file from that run
-(Logs\CleanROMs_<date>.log) and, if possible, a full file listing of the
-affected folder (e.g. `dir /s /b > listing.txt` from that system's folder).
-
-
-Credits
--------
-Development started with ChatGPT (GPT-5.5) and was completed and debugged
-with Claude, Anthropic's AI assistant, through several rounds of testing on
-real collections (tens of thousands of ROMs across 35+ systems).
-
-
-Repository
-----------
-https://github.com/batserra/CleanRoms
+This is a BETA. Use at your own risk on collections you care about --
+though by design the program never deletes anything, only moves
+files to a backup folder you can review and restore from.
