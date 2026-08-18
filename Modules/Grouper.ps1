@@ -1,6 +1,6 @@
 # ============================================================
 #
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # Grouper.ps1
 #
@@ -36,7 +36,22 @@ function Group-Roms {
     param(
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
-        [array]$Roms
+        [array]$Roms,
+
+        #
+        # Nombre real del sistema/consola (p.ej. "SNES"), tal cual
+        # está en $Global:Settings.SystemFolders. Se guarda en cada
+        # grupo para que, más adelante, Get-DuplicateTargetFolder
+        # pueda construir "_duplicates\<sistema>\" sin tener que
+        # adivinarlo a partir de la carpeta del propio archivo (eso
+        # fallaba cuando la ROM "perdedora" vivía en una subcarpeta,
+        # como "# Hacks y Otros #" o una de discos múltiples: el
+        # nombre de esa subcarpeta se colaba como si fuera el
+        # sistema). Opcional para no romper los tests existentes que
+        # llaman a Group-Roms sin este dato.
+        #
+
+        [string]$SystemName = $null
     )
 
     if($null -eq $Roms -or $Roms.Count -eq 0)
@@ -68,6 +83,8 @@ function Group-Roms {
             [PSCustomObject]@{
 
                 Name = $group.Name
+
+                System = $SystemName
 
                 Count = $group.Count
 

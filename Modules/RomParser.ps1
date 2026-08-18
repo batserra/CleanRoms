@@ -1,6 +1,6 @@
 # ============================================================
 #
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # RomParser.ps1
 #
@@ -122,7 +122,15 @@ $Global:FlagPatterns = @{
 
     Verified   = '\[\!\]'
 
-    BadDump    = '\[b.*?\]'
+    #
+    # Codigo GoodTools de "bad dump": "[b]" o "[b1]", "[b2]"...
+    # (solo digitos tras la "b"). Antes era '\[b.*?\]', que al ser
+    # -match insensible a mayusculas tambien encajaba con etiquetas
+    # legitimas como "[BIOS]" o "[Bonus]", marcandolas como mal
+    # volcadas y penalizandolas -500 puntos sin motivo.
+    #
+
+    BadDump    = '\[b[0-9]*\]'
 
     Hack       = '\[h.*?\]|Hack'
 
@@ -401,6 +409,59 @@ function Get-RomLanguage {
     }
 
     return "Unknown"
+
+}
+
+# ============================================================
+# Obtener versión de la ROM, p.ej. "(V1.1)", "[v1.2]" -> "1.1"
+#
+# Sin esto, $Rom.Version se queda siempre a $null y todo el
+# desempate por versión de DecisionEngine.ps1 (Get-VersionScore)
+# no hacía nada en la práctica.
+# ============================================================
+
+function Get-RomVersion {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Title
+    )
+
+    if($Title -match '\bv\s*([0-9]+(?:\.[0-9]+)?)\b')
+    {
+        return $Matches[1]
+    }
+
+    return $null
+
+}
+
+# ============================================================
+# Obtener revisión de la ROM, p.ej. "(Rev 1)", "[Rev A]" -> "1" / "A"
+#
+# Mismo caso que Get-RomVersion: $Rom.Revision nunca se rellenaba,
+# así que Get-RevisionScore devolvía siempre 0.
+# ============================================================
+
+function Get-RomRevision {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Title
+    )
+
+    #
+    # (?![a-z]) tras "Rev" evita que "Revenge", "Revolution" o
+    # "Review" (palabras reales de título) se confundan con la
+    # etiqueta "(Rev X)"/"(Rev.X)"/"(RevX)".
+    #
+
+    if($Title -match '\bRev(?![a-z])\.?\s*([0-9A-Za-z]{1,3})\b')
+    {
+        return $Matches[1]
+    }
+
+    return $null
 
 }
 
@@ -868,6 +929,13 @@ function Parse-Rom {
     $rom.Language = Get-RomLanguage $detectionText
 
     #
+    # Versión / Revisión
+    #
+
+    $rom.Version  = Get-RomVersion $detectionText
+    $rom.Revision = Get-RomRevision $detectionText
+
+    #
     # Flags
     #
 
@@ -890,7 +958,7 @@ function Parse-Rom {
     #
     # También se considera Hack/Traducción si está dentro de una
     # carpeta cuyo nombre contenga "Hack" o "Traduc"/"Translation"
-    # (p.ej. "# Hacks #", "Traducciones"), aunque el propio nombre
+    # (p.ej. "# Hacks y Otros #", "Traducciones"), aunque el propio nombre
     # del archivo no lo indique
     #
 

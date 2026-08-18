@@ -27,6 +27,7 @@ Import-Module "$Root\Config\DecisionWeights.ps1"
 . "$Root\Modules\Grouper.ps1"
 . "$Root\Modules\DecisionEngine.ps1"
 . "$Root\Modules\MediaCleaner.ps1"
+. "$Root\Modules\Cleaner.ps1"
 . "$Root\Modules\HackOrganizer.ps1"
 
 . "$PSScriptRoot\TestHelper.ps1"

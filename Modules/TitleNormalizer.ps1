@@ -1,6 +1,6 @@
 # ============================================================
 #
-# Beta CleanROMs v2.5 RC
+# Beta CleanROMs v2.6 RC
 #
 # TitleNormalizer.ps1
 #

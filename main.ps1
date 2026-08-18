@@ -1,5 +1,5 @@
 # ============================================================
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # Main.ps1
 # ============================================================
@@ -54,7 +54,7 @@ Show-Banner
 
 $mainAction = Select-MainAction
 
-if($mainAction -eq 7)
+if($mainAction -eq 6)
 {
     break mainLoop
 }
@@ -83,6 +83,8 @@ switch($mainAction)
         }
 
         Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
+
+        Invoke-HackOrganizer -SystemFolders $systemFolders
     }
 
     2
@@ -117,31 +119,6 @@ switch($mainAction)
 
     4
     {
-        Write-Host ""
-
-        $system = Select-System
-
-        if($system -eq "__NONE__")
-        {
-            continue mainLoop
-        }
-
-        if($system -eq "__ALL__")
-        {
-            $systemFolders = @(
-                Get-SupportedSystems | ForEach-Object { Get-SystemFolder $_ }
-            )
-        }
-        else
-        {
-            $systemFolders = @(Get-SystemFolder $system)
-        }
-
-        Invoke-HackOrganizer -SystemFolders $systemFolders
-    }
-
-    5
-    {
         $systemFolders = @(
             Get-SupportedSystems | ForEach-Object { Get-SystemFolder $_ }
         )
@@ -159,7 +136,7 @@ switch($mainAction)
         Invoke-HackOrganizer -SystemFolders $systemFolders
     }
 
-    6
+    5
     {
         Show-ConfigMenu -Root $Root
         continue mainLoop
@@ -172,6 +149,39 @@ Read-Host (T "menu.pressEnterMainMenu")
 
 }
 
+}
+catch
+{
+    #
+    # DIAGNÓSTICO TEMPORAL: si algo revienta sin que se pueda ver
+    # la línea exacta en consola, lo dejamos escrito en un archivo
+    # aparte con el stack trace completo, para poder localizarlo
+    # sin tener que reproducirlo interactivamente.
+    #
+
+    $crashLog = Join-Path $Root "crash_log.txt"
+
+    $details = @"
+========================================
+FECHA: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+MENSAJE: $($_.Exception.Message)
+----------------------------------------
+POSICION:
+$($_.InvocationInfo.PositionMessage)
+----------------------------------------
+SCRIPT STACK TRACE:
+$($_.ScriptStackTrace)
+========================================
+
+"@
+
+    Add-Content -LiteralPath $crashLog -Value $details -Encoding UTF8
+
+    Write-Host ""
+    Write-Host "==========================================" -ForegroundColor Red
+    Write-Host "Se ha producido un error inesperado." -ForegroundColor Red
+    Write-Host "Detalles guardados en: $crashLog" -ForegroundColor Red
+    Write-Host "==========================================" -ForegroundColor Red
 }
 finally
 {

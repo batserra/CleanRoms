@@ -1,6 +1,6 @@
 # ============================================================
 #
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # RomScanner.ps1
 #

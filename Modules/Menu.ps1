@@ -1,5 +1,5 @@
 # ============================================================
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # Menu.ps1
 #
@@ -32,14 +32,13 @@ function Select-MainAction {
     Write-Host (T "menu.option4")
     Write-Host (T "menu.option5")
     Write-Host (T "menu.option6")
-    Write-Host (T "menu.option7")
     Write-Host ""
 
     do
     {
         $option = Read-Host (T "menu.prompt")
     }
-    until($option -match '^[1234567]$')
+    until($option -match '^[123456]$')
 
     return [int]$option
 }

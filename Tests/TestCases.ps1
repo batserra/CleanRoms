@@ -1,5 +1,5 @@
 # ============================================================
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # TestCases.ps1
 #
@@ -355,6 +355,89 @@ $Global:TestCases = @(
         Type = "Flag"
         File = "Advance Wars (Europe) (En,Fr,De,Es).gba"
         ExpectedFlags = @{ Hack = $false; Beta = $false; Demo = $false; Prototype = $false }
+    },
+
+    @{
+        # BUG corregido: '\[b.*?\]' encajaba con "[BIOS]" (y con
+        # "[Bonus]", "[Bugfix]"...) por ser -match insensible a
+        # mayusculas, marcando volcados normales como Bad Dump.
+        Name = "BUG BadDump: [BIOS] NO es un bad dump"
+        Type = "Flag"
+        File = "[BIOS] Sega - Mega Drive - Genesis (World).bin"
+        ExpectedFlags = @{ BadDump = $false }
+    },
+
+    @{
+        Name = "BUG BadDump: [Bonus] NO es un bad dump"
+        Type = "Flag"
+        File = "Sonic the Hedgehog (World) [Bonus].md"
+        ExpectedFlags = @{ BadDump = $false }
+    },
+
+    @{
+        Name = "Codigo GoodTools [b1] SI debe seguir detectandose como bad dump"
+        Type = "Flag"
+        File = "Sonic the Hedgehog (World) [b1].md"
+        ExpectedFlags = @{ BadDump = $true }
+    },
+
+    @{
+        Name = "Codigo GoodTools [b] (sin numero) SI debe seguir detectandose como bad dump"
+        Type = "Flag"
+        File = "Sonic the Hedgehog (World) [b].md"
+        ExpectedFlags = @{ BadDump = $true }
+    },
+
+    # -------------------------------------------------------
+    # VERSIONREVISION: Get-RomVersion / Get-RomRevision
+    #
+    # BUG corregido: $Rom.Version y $Rom.Revision nunca se
+    # rellenaban, asi que Get-VersionScore/Get-RevisionScore de
+    # DecisionEngine.ps1 siempre devolvian 0 (el desempate por
+    # version/revision no funcionaba nunca).
+    # -------------------------------------------------------
+
+    @{
+        Name = "Version entre parentesis (V1.1) se extrae como 1.1"
+        Type = "VersionRevision"
+        File = "Chrono Trigger (USA) (V1.1).sfc"
+        ExpectedVersion = "1.1"
+        ExpectedRevision = $null
+    },
+
+    @{
+        Name = "Version entre corchetes [v1.2] se extrae como 1.2"
+        Type = "VersionRevision"
+        File = "Some Game [v1.2].nes"
+        ExpectedVersion = "1.2"
+        ExpectedRevision = $null
+    },
+
+    @{
+        Name = "Revision numerica (Rev 1) se extrae como 1"
+        Type = "VersionRevision"
+        File = "The Legend of Zelda (Rev 1).zip"
+        ExpectedVersion = $null
+        ExpectedRevision = "1"
+    },
+
+    @{
+        Name = "Revision con letra [Rev A] se extrae como A"
+        Type = "VersionRevision"
+        File = "Some Game [Rev A].zip"
+        ExpectedVersion = $null
+        ExpectedRevision = "A"
+    },
+
+    @{
+        # BUG que habria introducido un regex de Revision demasiado
+        # simple: "Revenge"/"Revolution"/"Review" NO son una etiqueta
+        # de revision, son parte real del titulo.
+        Name = "BUG Revision: Revenge/Revolution/Review NO deben confundirse con (Rev X)"
+        Type = "VersionRevision"
+        File = "Kunio-kun no Nekketsu Soccer League - Revenge.nes"
+        ExpectedVersion = $null
+        ExpectedRevision = $null
     },
 
     # -------------------------------------------------------

@@ -1,6 +1,6 @@
 # ============================================================
 #
-# Beta CleanROMs v2.5 RC
+# Beta CleanROMs v2.6 RC
 #
 # Settings.ps1
 #
@@ -226,6 +226,7 @@ $Global:SystemPaths = @{
     # Consolas de Sobremesa
 
     "Nintendo Entertainment System (NES)" = "nes"
+    "Nintendo Entertainment System 3D (NES3D)" = "nes3d"
     "SNES" = "snes"
     "Nintendo 64 (N64)" = "n64"
     "Nintendo GameCube" = "gamecube"

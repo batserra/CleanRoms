@@ -1,5 +1,5 @@
 # ============================================================
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # Cleaner.ps1
 #
@@ -100,9 +100,9 @@ function Invoke-RomCleaning {
             continue
         }
 
-        $roms = Update-NormalizedTitles $roms
+        $roms = @(Update-NormalizedTitles $roms)
 
-        $sysGroups = @(Group-Roms $roms)
+        $sysGroups = @(Group-Roms -Roms $roms -SystemName $systemName)
 
         Write-Host (T "scan.groupsFound" $sysGroups.Count)
 
@@ -128,7 +128,7 @@ function Invoke-RomCleaning {
     }
     else
     {
-        $actions = Invoke-CleanPreview $groups
+        $actions = @(Invoke-CleanPreview $groups)
     }
 
     #--------------------------------------------------------------
@@ -250,7 +250,7 @@ function Invoke-CleanPreview {
 
         foreach($item in $decision.MoveReasons)
         {
-            $target = Get-DuplicateTargetFolder $item.Rom
+            $target = Get-DuplicateTargetFolder -SystemName $group.System
 
             $actions += New-CleanAction `
                 -Action "MOVE" `
@@ -411,7 +411,7 @@ function Build-CleanPlan {
     $plan | Add-Member NoteProperty TotalRename $plan.RenameActions.Count
 	$plan | Add-Member NoteProperty TotalActions $Actions.Count
 	$plan | Add-Member NoteProperty BuildDate (Get-Date)
-	$plan | Add-Member NoteProperty Version "Beta Clean Roms v2.5"
+	$plan | Add-Member NoteProperty Version "Beta Clean Roms v2.6"
 
     return $plan
 
@@ -640,29 +640,26 @@ $rows
 function Get-DuplicateTargetFolder {
 
     param(
+        #
+        # Antes se calculaba el "nombre del sistema" haciendo
+        # Split-Path dos veces sobre $Rom.FullPath, asumiendo que la
+        # ROM vive siempre justo dentro de la carpeta del sistema.
+        # Eso se rompía en cuanto la ROM vivía un nivel más adentro
+        # (p.ej. dentro de "# Hacks y Otros #"): el "sistema"
+        # calculado terminaba siendo "# Hacks y Otros #", y las
+        # ROMs acababan en "_duplicates\# Hacks y Otros #\" en vez
+        # de "_duplicates\<sistema real>\". Ahora el nombre del
+        # sistema se recibe explícito desde quien sí lo conoce con
+        # certeza (el bucle que recorre $Global:Settings.SystemFolders).
+        #
+
         [Parameter(Mandatory)]
-        $Rom
+        [string]$SystemName
     )
-
-    #
-    # Carpeta del sistema
-    #
-
-    $systemFolder = Split-Path $Rom.FullPath -Parent
-
-    #
-    # Nombre del sistema
-    #
-
-    $systemName = Split-Path $systemFolder -Leaf
-
-    #
-    # Carpeta destino
-    #
 
     $target = Join-Path `
         (Join-Path $Global:RetroBatRoot $Global:DuplicatesFolder) `
-        $systemName
+        $SystemName
 
     return $target
 

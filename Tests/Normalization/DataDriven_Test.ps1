@@ -88,6 +88,24 @@ foreach($case in $Global:TestCases)
                 ("[Region] {0}" -f $case.Name)
         }
 
+        "VersionRevision"
+        {
+            $stem = [System.IO.Path]::GetFileNameWithoutExtension($case.File)
+
+            $actualVersion  = Get-RomVersion  -Title $stem
+            $actualRevision = Get-RomRevision -Title $stem
+
+            Assert-Equal `
+                $case.ExpectedVersion `
+                $actualVersion `
+                ("[Version] {0}" -f $case.Name)
+
+            Assert-Equal `
+                $case.ExpectedRevision `
+                $actualRevision `
+                ("[Revision] {0}" -f $case.Name)
+        }
+
         default
         {
             Write-Host ("[FAIL] Tipo de caso desconocido: {0} ({1})" -f $case.Type, $case.Name) -ForegroundColor Red

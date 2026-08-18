@@ -1,5 +1,5 @@
 # ============================================================
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # MediaCleaner.ps1
 #
@@ -88,7 +88,7 @@ function Find-OrphanedMedia {
     #
     # Nombres (sin extensión) de todas las ROMs que existen
     # actualmente en este sistema, incluyendo subcarpetas como
-    # "# Hacks #" (Get-RomFiles ya ignora images/videos/etc.)
+    # "# Hacks y Otros #" (Get-RomFiles ya ignora images/videos/etc.)
     #
 
     $validBaseNames = @(

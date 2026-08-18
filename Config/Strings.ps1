@@ -1,5 +1,5 @@
 # ============================================================
-# Beta CleanROMs v2.5
+# Beta CleanROMs v2.6
 #
 # Strings.ps1
 #
@@ -17,15 +17,14 @@ $Global:Strings = @{
     es = @{
 
         # ---------- Menú / banner ----------
-        "banner.title"              = "BETA CLEAN ROMS v2.5"
+        "banner.title"              = "BETA CLEAN ROMS v2.6"
         "menu.whatToDo"             = "¿Qué quieres hacer?"
         "menu.option1"              = " 1) Limpiar ROMs duplicadas"
         "menu.option2"              = " 2) Deshacer la última limpieza"
         "menu.option3"              = " 3) Limpiar imágenes/vídeos/manuales huérfanos"
-        "menu.option4"              = " 4) Organizar ROMs hackeadas en su propia carpeta ('# Hacks #')"
-        "menu.option5"              = " 5) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas"
-        "menu.option6"              = " 6) Configuración (ruta de RetroBat / idioma)"
-        "menu.option7"              = " 7) Salir"
+        "menu.option4"              = " 4) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas"
+        "menu.option5"              = " 5) Configuración (ruta de RetroBat / idioma)"
+        "menu.option6"              = " 6) Salir"
         "menu.prompt"               = "Opción"
         "menu.searchingSystems"     = "Buscando sistemas con ROMs..."
         "menu.noSystemsFound"       = "No se ha encontrado ninguna carpeta de sistema con ROMs."
@@ -167,14 +166,23 @@ $Global:Strings = @{
         # ---------- Organizador de Hacks ----------
         "hackorg.header"            = "     ORGANIZAR ROMS HACKEADAS"
         "hackorg.foundInSystem"     = "  {0}: {1} ROM(s) hackeada(s) sueltas"
-        "hackorg.noneFound"         = "No se han encontrado ROMs hackeadas sueltas fuera de '# Hacks #'."
+        "hackorg.noneFound"         = "No se han encontrado ROMs hackeadas sueltas fuera de '# Hacks y Otros #'."
         "hackorg.previewTitle"      = "         PREVISUALIZACIÓN"
         "hackorg.destination"       = "       Destino : {0}"
         "hackorg.totalFound"        = "Total ROMs hackeadas encontradas : {0}"
-        "hackorg.confirm"           = "¿Mover estas ROMs a su propia carpeta '# Hacks #'? (S/N)"
+        "hackorg.confirm"           = "¿Mover estas ROMs a su propia carpeta '# Hacks y Otros #'? (S/N)"
         "hackorg.moved"             = "[MOVIDO] {0}"
         "hackorg.movedCount"        = "Movidos  : {0}"
         "hackorg.skippedCount"      = "Saltados : {0}"
+
+        # ---------- Deduplicación por hash dentro de Hacks y Otros ----------
+        "hackdedup.header"          = "     DUPLICADOS EXACTOS DENTRO DE '# Hacks y Otros #'"
+        "hackdedup.foundInSystem"   = "  {0}: {1} grupo(s) de archivos idénticos"
+        "hackdedup.noneFound"       = "No se han encontrado duplicados exactos dentro de '# Hacks y Otros #'."
+        "hackdedup.hash"            = "{0} : {1}"
+        "hackdedup.totalFound"      = "Total duplicados exactos encontrados : {0}"
+        "hackdedup.confirmNote"     = "Nota: son copias con el mismo contenido exacto (mismo {0}), solo cambia el nombre del archivo — responder S es seguro y no se pierde nada, ya que la copia movida sigue existiendo dentro de _duplicates y se puede recuperar a mano si algún día la necesitas. Eso sí: a diferencia de la limpieza normal de ROMs, este paso concreto NO se puede deshacer con la opción 2 del menú ('Deshacer la última limpieza')."
+        "hackdedup.confirmMove"     = "¿Mover los duplicados indicados arriba? (S/N)"
 
         # ---------- Confirmaciones genéricas ----------
         "plan.destination"           = "Destino : {0}"
@@ -190,15 +198,14 @@ $Global:Strings = @{
     en = @{
 
         # ---------- Menu / banner ----------
-        "banner.title"              = "BETA CLEAN ROMS v2.5"
+        "banner.title"              = "BETA CLEAN ROMS v2.6"
         "menu.whatToDo"             = "What do you want to do?"
         "menu.option1"              = " 1) Clean up duplicate ROMs"
         "menu.option2"              = " 2) Undo the last cleanup"
         "menu.option3"              = " 3) Clean up orphaned images/videos/manuals"
-        "menu.option4"              = " 4) Organize hacked ROMs into their own folder ('# Hacks #')"
-        "menu.option5"              = " 5) ALL: Move ROMs and images/videos/manuals for EVERY system"
-        "menu.option6"              = " 6) Configuration (RetroBat path / language)"
-        "menu.option7"              = " 7) Exit"
+        "menu.option4"              = " 4) ALL: Move ROMs and images/videos/manuals for EVERY system"
+        "menu.option5"              = " 5) Configuration (RetroBat path / language)"
+        "menu.option6"              = " 6) Exit"
         "menu.prompt"               = "Option"
         "menu.searchingSystems"     = "Looking for systems with ROMs..."
         "menu.noSystemsFound"       = "No system folder with ROMs was found."
@@ -340,14 +347,23 @@ $Global:Strings = @{
         # ---------- Hack Organizer ----------
         "hackorg.header"            = "     ORGANIZE HACKED ROMS"
         "hackorg.foundInSystem"     = "  {0}: {1} loose hacked ROM(s)"
-        "hackorg.noneFound"         = "No loose hacked ROMs were found outside '# Hacks #'."
+        "hackorg.noneFound"         = "No loose hacked ROMs were found outside '# Hacks y Otros #'."
         "hackorg.previewTitle"      = "            PREVIEW"
         "hackorg.destination"       = "       Destination : {0}"
         "hackorg.totalFound"        = "Total hacked ROMs found : {0}"
-        "hackorg.confirm"           = "Move these ROMs to their own '# Hacks #' folder? (Y/N)"
+        "hackorg.confirm"           = "Move these ROMs to their own '# Hacks y Otros #' folder? (Y/N)"
         "hackorg.moved"             = "[MOVED] {0}"
         "hackorg.movedCount"        = "Moved   : {0}"
         "hackorg.skippedCount"      = "Skipped : {0}"
+
+        # ---------- Hash deduplication inside Hacks and Others ----------
+        "hackdedup.header"          = "     EXACT DUPLICATES INSIDE '# Hacks y Otros #'"
+        "hackdedup.foundInSystem"   = "  {0}: {1} group(s) of identical files"
+        "hackdedup.noneFound"       = "No exact duplicates were found inside '# Hacks y Otros #'."
+        "hackdedup.hash"            = "{0} : {1}"
+        "hackdedup.totalFound"      = "Total exact duplicates found : {0}"
+        "hackdedup.confirmNote"     = "Note: these are copies with the exact same content (same {0}), only the file name differs — answering Y is safe and nothing is lost, since the moved copy still exists inside _duplicates and can be manually recovered if you ever need it. That said, unlike the regular ROM cleanup, this particular step CANNOT be undone with menu option 2 ('Undo the last cleanup')."
+        "hackdedup.confirmMove"     = "Move the duplicates listed above? (Y/N)"
 
         # ---------- Generic confirmations ----------
         "plan.destination"           = "Destination : {0}"
