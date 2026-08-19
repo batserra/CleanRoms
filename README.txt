@@ -1,4 +1,4 @@
-Beta CleanROMs v2.5
+Beta CleanROMs v2.6
 ===================
 
 A PowerShell command-line tool that finds duplicate ROMs inside a RetroBat
@@ -50,11 +50,20 @@ Requirements
 Installation
 ------------
 Copy the whole "CleanRoms" folder inside the "roms" folder of your RetroBat
-installation. Then either right-click main.ps1 and choose "Run with
-PowerShell 7", or from a terminal:
+installation. Then double-click "Run CleanROMs.bat".
 
-    cd "C:\RetroBat\roms\CleanRoms"
-    .\main.ps1
+That launcher unblocks every file in the folder and starts main.ps1 for
+you, avoiding a common first-run error where Windows refuses to run
+main.ps1 directly with "File ... is not digitally signed. You cannot run
+this script on the current system." -- that happens because Windows marks
+files from a downloaded/unzipped folder as blocked, and PowerShell's
+default policy then requires a signature to run them.
+
+If you'd rather run main.ps1 directly (e.g. right-click it and choose "Run
+with PowerShell 7", or from a terminal with `.\main.ps1`) and you hit that
+error, just unblock the folder once and it won't happen again:
+
+    Get-ChildItem -Path "C:\RetroBat\roms\CleanRoms" -Recurse | Unblock-File
 
 On first run it will ask you to pick a language (Spanish/English) and the
 path to your RetroBat "roms" folder -- both are saved in
@@ -108,10 +117,32 @@ Every full session is also logged to Logs\CleanROMs_<date>.log.
 
 Documentation
 -------------
-A full user manual (in Spanish) covering the scoring system, tie-break
-rules, the title normalization/alias system, associated-file handling,
-configuration reference, supported systems, and real test results is
+Full user manuals, in both English (CleanROMs_Manual_EN.pdf) and Spanish
+(CleanROMs_Manual_ES.pdf), covering the scoring system, tie-break rules,
+the title normalization/alias system, associated-file handling,
+configuration reference, supported systems, and real test results are
 included in the repository.
+
+
+What's new in 2.6
+------------------
+- ROM version and revision (V1.1, Rev A...) are now actually detected
+  from the file name and feed into the scoring system -- previously this
+  scoring table existed but had no real effect.
+- "[BIOS]" and similar tags are no longer mistaken for a bad dump ([b])
+  and incorrectly penalized.
+- Duplicate hacks found inside "# Hacks y Otros #" now move to the
+  correct system's duplicates folder instead of occasionally creating a
+  stray "_duplicates\# Hacks y Otros #\" folder.
+- The confirmation prompt for moving duplicate hacks now explains that
+  these are byte-identical files and that this particular step cannot be
+  undone with the "Undo the last cleanup" menu option.
+- Added "Run CleanROMs.bat", a launcher that unblocks the folder and
+  starts the program so first-time users don't hit the "not digitally
+  signed" PowerShell error.
+
+See the full user manual for details on every feature and the exact
+scoring/tie-break rules.
 
 
 Reporting issues
