@@ -152,13 +152,15 @@ function Invoke-HackOrganizer {
             continue
         }
  
-        $roms = @(Get-RomsFromFolder $folder)
+        $systemName = Split-Path $folder -Leaf
+ 
+        $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
  
         $loose = @(Get-LooseHackRoms -Roms $roms)
  
         if($loose.Count -gt 0)
         {
-            Write-Host (T "hackorg.foundInSystem" @((Split-Path $folder -Leaf), $loose.Count))
+            Write-Host (T "hackorg.foundInSystem" @($systemName, $loose.Count))
         }
  
         $allLoose += $loose
@@ -302,10 +304,10 @@ function Invoke-HackDeduplication {
  
     foreach($folder in $HacksFolders)
     {
-        $roms = @(Get-RomsFromFolder $folder)
- 
         $systemName = Split-Path (Split-Path $folder -Parent) -Leaf
 
+        $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
+ 
         $dupeGroups = @(Group-RomsByHash -Roms $roms -SystemName $systemName)
  
         if($dupeGroups.Count -gt 0)

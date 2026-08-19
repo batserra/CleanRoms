@@ -91,7 +91,7 @@ function Invoke-RomCleaning {
             continue
         }
 
-        $roms = @(Get-RomsFromFolder $folder)
+        $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
 
         Write-Host (T "scan.romsFound" $roms.Count)
 

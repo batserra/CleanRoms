@@ -55,12 +55,26 @@ function Scan-Roms {
 
     param(
         [Parameter(Mandatory)]
-        [string]$Folder
+        [string]$Folder,
+
+        # Nombre del sistema (p.ej. "SNES"), solo para mostrarlo en la
+        # cabecera "ESCANEANDO ROMS" de abajo. Opcional: si no se
+        # indica, se usa la cabecera genérica de siempre.
+        [string]$SystemName = $null
     )
 
     Write-Host ""
     Write-Host "================================="
-    Write-Host (T "scan.header")
+
+    if([string]::IsNullOrWhiteSpace($SystemName))
+    {
+        Write-Host (T "scan.header")
+    }
+    else
+    {
+        Write-Host (T "scan.headerSystem" $SystemName)
+    }
+
     Write-Host "================================="
     Write-Host ""
 
@@ -116,9 +130,11 @@ function Scan-Roms {
 function Get-RomsFromFolder {
 
     param(
-        [string]$Path
+        [string]$Path,
+
+        [string]$SystemName = $null
     )
 
-    return Scan-Roms $Path
+    return Scan-Roms -Folder $Path -SystemName $SystemName
 
 }
