@@ -73,7 +73,17 @@ function Group-RomsByHash {
         # sería "# Hacks y Otros #", no el sistema).
         #
 
-        [string]$SystemName = $null
+        [string]$SystemName = $null,
+
+        #
+        # Necesario para Get-RomHashesParallel (localiza
+        # Modules\RomParser.ps1 para cargarlo en cada runspace
+        # paralelo). Opcional para no romper compatibilidad con
+        # quien llamara a esta función sin él: sin -Root, se
+        # calculan los hashes en serie, uno a uno, como antes.
+        #
+
+        [string]$Root = $null
     )
  
     #
@@ -89,15 +99,35 @@ function Group-RomsByHash {
         return @()
     }
  
-    $withHash = foreach($rom in $Roms)
+    if([string]::IsNullOrWhiteSpace($Root))
     {
-        $hash = Get-RomHash -Path $rom.FullPath
- 
-        if($hash)
+        $withHash = foreach($rom in $Roms)
         {
-            [PSCustomObject]@{
-                Rom  = $rom
-                Hash = $hash
+            $hash = Get-RomHash -Path $rom.FullPath
+ 
+            if($hash)
+            {
+                [PSCustomObject]@{
+                    Rom  = $rom
+                    Hash = $hash
+                }
+            }
+        }
+    }
+    else
+    {
+        $hashLookup = Get-RomHashesParallel -Paths @($Roms.FullPath) -Root $Root
+
+        $withHash = foreach($rom in $Roms)
+        {
+            $hash = $hashLookup[$rom.FullPath]
+
+            if($hash)
+            {
+                [PSCustomObject]@{
+                    Rom  = $rom
+                    Hash = $hash
+                }
             }
         }
     }
@@ -134,6 +164,9 @@ function Group-RomsByHash {
 function Invoke-HackOrganizer {
  
     param(
+        [Parameter(Mandatory)]
+        [string]$Root,
+
         [Parameter(Mandatory)]
         [string[]]$SystemFolders
     )
@@ -194,12 +227,19 @@ function Invoke-HackOrganizer {
         Write-Host "==========================================" -ForegroundColor Cyan
         Write-Host ""
  
-        $answer = Read-Host (T "hackorg.confirm")
+        if($Global:Settings.PreviewOnly)
+        {
+            Write-Host (T "plan.previewOnlyNotice") -ForegroundColor DarkYellow
+            Write-Host ""
+        }
  
-        if($answer -notmatch (T "confirm.yesPattern"))
+        if(-not (Confirm-YesNo "hackorg.confirm"))
         {
             Write-Host ""
-            Write-Host (T "plan.operationCancelled")
+            Write-Host "==========================================" -ForegroundColor Yellow
+            Write-Host (T "plan.operationCancelled") -ForegroundColor Yellow
+            Write-Host (T "plan.operationCancelledDetail" $allLoose.Count) -ForegroundColor Yellow
+            Write-Host "==========================================" -ForegroundColor Yellow
         }
         else
         {
@@ -207,16 +247,13 @@ function Invoke-HackOrganizer {
  
             $movedCount = 0
             $skippedCount = 0
+            $previewedCount = 0
+            $planEntries = @()
  
             foreach($rom in $allLoose)
             {
                 $systemFolder = Split-Path $rom.FullPath -Parent
                 $target = Join-Path $systemFolder "# Hacks y Otros #"
- 
-                if(!(Test-Path -LiteralPath $target))
-                {
-                    New-Item -ItemType Directory -Path $target -Force | Out-Null
-                }
  
                 if(!(Test-Path -LiteralPath $rom.FullPath))
                 {
@@ -233,9 +270,30 @@ function Invoke-HackOrganizer {
                     continue
                 }
  
+                if($Global:Settings.PreviewOnly)
+                {
+                    Write-Host (T "exec.previewMove" $rom.FullPath) -ForegroundColor DarkYellow
+                    $previewedCount++
+                    continue
+                }
+ 
+                if(!(Test-Path -LiteralPath $target))
+                {
+                    New-Item -ItemType Directory -Path $target -Force | Out-Null
+                }
+ 
                 Move-Item -LiteralPath $rom.FullPath -Destination $destination
  
                 Write-Host (T "hackorg.moved" $rom.FullPath) -ForegroundColor Yellow
+ 
+                #
+                # Se registra como acción MOVE (misma forma que las
+                # de la limpieza normal) para que "Deshacer la
+                # última limpieza" también pueda devolver este
+                # archivo a su sitio.
+                #
+
+                $entry = New-CleanAction -Action "MOVE" -Rom $rom -Target $target -Reason (T "hackorg.reason") -System (Split-Path $systemFolder -Leaf)
  
                 if($Global:Settings.MoveAssets)
                 {
@@ -247,20 +305,30 @@ function Invoke-HackOrganizer {
                         {
                             Move-Asset -Asset $asset -TargetFolder $target
                             Write-Host (T "exec.moveAsset" $asset.Name) -ForegroundColor DarkYellow
+                            $entry.AssociatedFiles += $asset.Name
                         }
                         catch
                         {
-                            Write-Warning (T "exec.assetMoveFailed" $asset.FullName)
+                            Write-Warning (T "exec.assetMoveFailed" @($asset.FullName, $_.Exception.Message))
                         }
                     }
                 }
  
+                $planEntries += $entry
                 $movedCount++
             }
+ 
+            Add-CleanPlanEntries -Root $Root -NewActions $planEntries
  
             Write-Host ""
             Write-Host "==========================================" -ForegroundColor Cyan
             Write-Host (T "hackorg.movedCount" $movedCount)
+
+            if($Global:Settings.PreviewOnly)
+            {
+                Write-Host (T "exec.previewOnly" $previewedCount)
+            }
+
             Write-Host (T "hackorg.skippedCount" $skippedCount)
             Write-Host "==========================================" -ForegroundColor Cyan
         }
@@ -279,12 +347,15 @@ function Invoke-HackOrganizer {
             Select-Object -Unique
     )
  
-    Invoke-HackDeduplication -HacksFolders $hacksFolders
+    Invoke-HackDeduplication -Root $Root -HacksFolders $hacksFolders
 }
  
 function Invoke-HackDeduplication {
  
     param(
+        [Parameter(Mandatory)]
+        [string]$Root,
+
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
         [string[]]$HacksFolders
@@ -308,7 +379,7 @@ function Invoke-HackDeduplication {
 
         $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
  
-        $dupeGroups = @(Group-RomsByHash -Roms $roms -SystemName $systemName)
+        $dupeGroups = @(Group-RomsByHash -Roms $roms -SystemName $systemName -Root $Root)
  
         if($dupeGroups.Count -gt 0)
         {
@@ -359,12 +430,19 @@ function Invoke-HackDeduplication {
     Write-Host (T "hackdedup.confirmNote" $Global:Settings.HashAlgorithm) -ForegroundColor Yellow
     Write-Host ""
  
-    $answer = Read-Host (T "hackdedup.confirmMove")
+    if($Global:Settings.PreviewOnly)
+    {
+        Write-Host (T "plan.previewOnlyNotice") -ForegroundColor DarkYellow
+        Write-Host ""
+    }
  
-    if($answer -notmatch (T "confirm.yesPattern"))
+    if(-not (Confirm-YesNo "hackdedup.confirmMove"))
     {
         Write-Host ""
-        Write-Host (T "plan.operationCancelled")
+        Write-Host "==========================================" -ForegroundColor Yellow
+        Write-Host (T "plan.operationCancelled") -ForegroundColor Yellow
+        Write-Host (T "plan.operationCancelledDetail" $totalToMove) -ForegroundColor Yellow
+        Write-Host "==========================================" -ForegroundColor Yellow
         return
     }
  
@@ -372,17 +450,14 @@ function Invoke-HackDeduplication {
  
     $movedCount = 0
     $skippedCount = 0
+    $previewedCount = 0
+    $planEntries = @()
  
     foreach($group in $allDupeGroups)
     {
         foreach($rom in $group.Remove)
         {
             $target = Get-DuplicateTargetFolder -SystemName $group.System
- 
-            if(!(Test-Path -LiteralPath $target))
-            {
-                New-Item -ItemType Directory -Path $target -Force | Out-Null
-            }
  
             if(!(Test-Path -LiteralPath $rom.FullPath))
             {
@@ -399,9 +474,29 @@ function Invoke-HackDeduplication {
                 continue
             }
  
+            if($Global:Settings.PreviewOnly)
+            {
+                Write-Host (T "exec.previewMove" $rom.FullPath) -ForegroundColor DarkYellow
+                $previewedCount++
+                continue
+            }
+ 
+            if(!(Test-Path -LiteralPath $target))
+            {
+                New-Item -ItemType Directory -Path $target -Force | Out-Null
+            }
+ 
             Move-Item -LiteralPath $rom.FullPath -Destination $destination
  
             Write-Host (T "exec.move" $rom.FullPath) -ForegroundColor Yellow
+ 
+            #
+            # Igual que en Invoke-HackOrganizer: se registra como
+            # acción MOVE para que "Deshacer la última limpieza"
+            # también cubra estos duplicados exactos de hacks.
+            #
+
+            $entry = New-CleanAction -Action "MOVE" -Rom $rom -Target $target -Reason (T "hackdedup.reason") -Hash $group.Hash -System $group.System
  
             if($Global:Settings.MoveAssets)
             {
@@ -413,21 +508,31 @@ function Invoke-HackDeduplication {
                     {
                         Move-Asset -Asset $asset -TargetFolder $target
                         Write-Host (T "exec.moveAsset" $asset.Name) -ForegroundColor DarkYellow
+                        $entry.AssociatedFiles += $asset.Name
                     }
                     catch
                     {
-                        Write-Warning (T "exec.assetMoveFailed" $asset.FullName)
+                        Write-Warning (T "exec.assetMoveFailed" @($asset.FullName, $_.Exception.Message))
                     }
                 }
             }
  
+            $planEntries += $entry
             $movedCount++
         }
     }
  
+    Add-CleanPlanEntries -Root $Root -NewActions $planEntries
+ 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host (T "hackorg.movedCount" $movedCount)
+
+    if($Global:Settings.PreviewOnly)
+    {
+        Write-Host (T "exec.previewOnly" $previewedCount)
+    }
+
     Write-Host (T "hackorg.skippedCount" $skippedCount)
     Write-Host "==========================================" -ForegroundColor Cyan
 }

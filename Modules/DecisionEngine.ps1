@@ -20,50 +20,14 @@ if($null -eq $Global:DecisionWeights)
 }
 
 # ============================================================
-# Comprueba si una ROM es elegible
+# NOTA: aquí existía una función Test-RomEligibility que nunca
+# llegó a usarse en ningún sitio del programa — la exclusión real
+# de Hacks/Traducciones/Betas/etc. de la comparación vive en
+# Grouper.ps1 (Group-Roms). Se quitó en la limpieza de código
+# muerto de la v2.6 para no tener dos lógicas de exclusión
+# distintas y potencialmente inconsistentes conviviendo en el
+# proyecto.
 # ============================================================
-
-function Test-RomEligibility
-{
-    param(
-        [Parameter(Mandatory)]
-        $Rom
-    )
-
-    if($null -eq $Rom)
-    {
-        return $false
-    }
-
-    #
-    # Nunca conservar Homebrew
-    #
-
-    if($Rom.Homebrew)
-    {
-        return $false
-    }
-
-    #
-    # Nunca conservar Pirate
-    #
-
-    if($Rom.Pirate)
-    {
-        return $false
-    }
-
-    #
-    # Nunca conservar Hacks
-    #
-
-    if($Rom.Hack)
-    {
-        return $false
-    }
-
-    return $true
-}
 
 # ============================================================
 # Obtiene un peso de la configuración
@@ -276,12 +240,37 @@ function Get-VersionScore
 
     $version = $Rom.Version.Trim()
 
-    if($version -match '^([0-9]+(?:\.[0-9]+)?)$')
+    if($version -notmatch '^([0-9]+(?:\.[0-9]+)?)$')
     {
-        return [int]([double]$Matches[1] * 10)
+        return 0
     }
 
-    return 0
+    #
+    # BUG corregido en la v2.6: antes esta función siempre
+    # calculaba la puntuación con una fórmula fija
+    # ([double]$Matches[1] * 10), que daba una décima parte de lo
+    # que indica la tabla de Config\DecisionWeights.ps1 (p.ej.
+    # V1.1 daba 11 puntos en vez de los 110 documentados). Como
+    # $Rom.Version nunca se rellenaba antes de la v2.6, este error
+    # nunca había llegado a manifestarse en la práctica.
+    #
+    # Ahora se busca primero una clave exacta en
+    # Config\DecisionWeights.ps1 (p.ej. "Version_1_1"), para que
+    # esa tabla sea de verdad editable como promete el manual —
+    # y solo si la versión no está en la tabla (p.ej. "1.4",
+    # "2.0") se recurre a la misma fórmula genérica que antes,
+    # pero ya con la escala correcta (x100, no x10) para que
+    # coincida con los valores de ejemplo de la tabla.
+    #
+
+    $key = "Version_" + ($version -replace '\.', '_')
+
+    if($Global:DecisionWeights.ContainsKey($key))
+    {
+        return Get-DecisionWeight $key
+    }
+
+    return [int]([double]$version * 100)
 }
 
 # ============================================================
@@ -300,12 +289,31 @@ function Get-RevisionScore
         return 0
     }
 
-    if($Rom.Revision -match '([0-9]+)')
+    if($Rom.Revision -notmatch '([0-9]+)')
     {
-        return [int]$Matches[1]
+        return 0
     }
 
-    return 0
+    $number = $Matches[1]
+
+    #
+    # Mismo caso que en Get-VersionScore: la fórmula fija de
+    # antes ([int]$Matches[1]) daba una décima parte de lo
+    # documentado (Rev2 daba 2 puntos en vez de 20). Se busca
+    # primero la clave exacta en Config\DecisionWeights.ps1
+    # (p.ej. "Revision_2"), y solo si no está (revisiones más
+    # allá de la 4, que es donde termina la tabla) se recurre a
+    # la fórmula genérica, ya con la escala correcta (x10).
+    #
+
+    $key = "Revision_$number"
+
+    if($Global:DecisionWeights.ContainsKey($key))
+    {
+        return Get-DecisionWeight $key
+    }
+
+    return [int]$number * 10
 }
 
 # ============================================================
@@ -507,6 +515,22 @@ function Resolve-RomTie {
     Write-Host " 1) $($A.FullPath)"
     Write-Host " 2) $($B.FullPath)"
     Write-Host ""
+
+    if($Global:AutoConfirm)
+    {
+        #
+        # Modo no interactivo: no hay nadie para responder cuál
+        # prefiere conservar. Se elige la 1) sin más -- son
+        # contenidos distintos con la misma puntuación exacta, así
+        # que no hay una respuesta "correcta" objetiva; se deja
+        # constancia en pantalla/log de que se decidió así, para
+        # que se pueda revisar luego a mano si hace falta.
+        #
+
+        Write-Host (T "tie.ask")
+        Write-Host (T "confirm.autoConfirmed") -ForegroundColor DarkGray
+        return $A
+    }
 
     do
     {

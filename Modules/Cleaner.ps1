@@ -23,11 +23,39 @@ function New-CleanAction {
 
         [string]$Target = "",
 
-        [string]$Reason = ""
+        [string]$Reason = "",
+
+        #
+        # Si ya se calculó el hash de esta ROM de antemano (p.ej.
+        # con Get-RomHashesParallel, al construir todo el plan de
+        # golpe), se puede pasar aquí directamente para no volver
+        # a leer y hashear el archivo por segunda vez. Si no se
+        # indica, se calcula igual que siempre.
+        #
+
+        [string]$Hash = $null,
+
+        #
+        # Nombre real del sistema (p.ej. "snes"), cuando se conoce
+        # con certeza en el punto donde se crea la acción (por
+        # ejemplo, desde $group.System en Invoke-CleanPreview).
+        # Se guarda tal cual en la acción para que Show-SystemSummary
+        # no tenga que adivinarlo a partir de la ruta del archivo —
+        # ese cálculo por ruta es justo el que fallaba con
+        # Get-DuplicateTargetFolder cuando la ROM vivía en una
+        # subcarpeta (ver sección 21 del manual). Opcional: si no
+        # se indica, Show-SystemSummary recurre a ese mismo cálculo
+        # por ruta como red de seguridad.
+        #
+
+        [string]$System = $null
 
     )
 
-    $hash = Get-RomHash -Path $Rom.FullPath
+    if([string]::IsNullOrWhiteSpace($Hash))
+    {
+        $Hash = Get-RomHash -Path $Rom.FullPath
+    }
 
     return [PSCustomObject]@{
 
@@ -41,9 +69,23 @@ function New-CleanAction {
 
         Reason = $Reason
 
-        Hash = $hash
+        Hash = $Hash
+
+        System = $System
 
         TimeStamp = Get-Date
+
+        #
+        # Nombres (solo el nombre de archivo, no la ruta completa)
+        # de los archivos asociados que se movieron junto con esta
+        # ROM (partida guardada, configuración de mando...), para
+        # que "Deshacer la última limpieza" también pueda
+        # devolverlos a su sitio. Se rellena durante la ejecución
+        # (Executor.ps1), no aquí: en el momento de crear la
+        # acción todavía no se ha movido nada.
+        #
+
+        AssociatedFiles = @()
 
     }
 
@@ -128,7 +170,7 @@ function Invoke-RomCleaning {
     }
     else
     {
-        $actions = @(Invoke-CleanPreview $groups)
+        $actions = @(Invoke-CleanPreview -Groups $groups -Root $Root)
     }
 
     #--------------------------------------------------------------
@@ -161,7 +203,8 @@ function Invoke-RomCleaning {
 
     $exported = Export-CleanPlan `
         -Plan $plan `
-        -OutputFolder (Join-Path $Root "Resultado")
+        -OutputFolder (Join-Path $Root "Resultado") `
+        -Rotate
 
     Write-Host ""
     Write-Host (T "plan.exportedTo")
@@ -184,12 +227,14 @@ function Invoke-RomCleaning {
     {
         Write-Host ""
 
-        $answer = Read-Host (T "plan.confirmMove")
-
-        if($answer -notmatch (T "confirm.yesPattern"))
+        if(-not (Confirm-YesNo "plan.confirmMove"))
         {
             Write-Host ""
-            Write-Host (T "plan.operationCancelled")
+            Write-Host "==========================================" -ForegroundColor Yellow
+            Write-Host (T "plan.operationCancelled") -ForegroundColor Yellow
+            Write-Host (T "plan.operationCancelledDetail" $plan.TotalMove) -ForegroundColor Yellow
+            Write-Host "==========================================" -ForegroundColor Yellow
+            Write-Host ""
             return
         }
     }
@@ -200,6 +245,24 @@ function Invoke-RomCleaning {
 
     Invoke-CleanExecute $plan
 
+    #--------------------------------------------------------------
+    # Reexportar el plan tras ejecutar
+    #
+    # El primer Export-CleanPlan (más arriba) se hace ANTES de
+    # mover nada, para que quede un registro aunque el usuario
+    # cancele. Pero en ese momento todavía no sabemos qué archivos
+    # asociados se movieron de verdad con cada ROM (eso se decide
+    # durante Invoke-CleanExecute). Sin este segundo export,
+    # "Deshacer la última limpieza" nunca podría restaurar esos
+    # archivos asociados, porque CleanPlan.json se habría quedado
+    # con la versión "antes de ejecutar".
+    #--------------------------------------------------------------
+
+    Export-CleanPlan `
+        -Plan $plan `
+        -OutputFolder (Join-Path $Root "Resultado") |
+        Out-Null
+
 }
 
 function Invoke-CleanPreview {
@@ -207,8 +270,26 @@ function Invoke-CleanPreview {
     param(
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
-        [array]$Groups
+        [array]$Groups,
+
+        [Parameter(Mandatory)]
+        [string]$Root
     )
+
+    #
+    # Se calculan de golpe (y en paralelo si hay suficientes) los
+    # hashes de TODAS las ROMs que van a necesitar una acción
+    # (todos los miembros de todos los grupos), en vez de ir
+    # hasheando una a una según se construye cada acción más
+    # abajo. Con colecciones grandes, esto es lo que más tiempo
+    # ahorra de toda la limpieza.
+    #
+
+    $allPaths = @(
+        $Groups | ForEach-Object { $_.Roms } | ForEach-Object { $_.FullPath }
+    )
+
+    $hashLookup = Get-RomHashesParallel -Paths $allPaths -Root $Root
 
     $actions = @()
 
@@ -242,7 +323,9 @@ function Invoke-CleanPreview {
         $actions += New-CleanAction `
             -Action "KEEP" `
             -Rom $decision.Keep `
-            -Reason ($decision.KeepReason -join "`n")
+            -Reason ($decision.KeepReason -join "`n") `
+            -Hash $hashLookup[$decision.Keep.FullPath] `
+            -System $group.System
 
         #
         # MOVE
@@ -256,7 +339,9 @@ function Invoke-CleanPreview {
                 -Action "MOVE" `
                 -Rom $item.Rom `
                 -Target $target `
-                -Reason ($item.Reason -join "`n")
+                -Reason ($item.Reason -join "`n") `
+                -Hash $hashLookup[$item.Rom.FullPath] `
+                -System $group.System
         }
     }
 
@@ -275,11 +360,35 @@ function Get-CleanStatistics {
         $Plan
     )
 
-    $systems = $Plan.Actions |
-        ForEach-Object {
-            Split-Path (Split-Path $_.Source -Parent) -Leaf
-        } |
-        Sort-Object -Unique
+    #
+    # BUG corregido en la v2.6: si todas las acciones pertenecen a
+    # UN SOLO sistema (el caso más habitual: limpiar un sistema
+    # concreto, no "0) TODOS LOS SISTEMAS"), la tubería de arriba
+    # devuelve un texto suelto, no un array de un elemento — así
+    # es como funciona PowerShell con resultados de un solo
+    # elemento. Bajo Set-StrictMode -Version Latest (activo desde
+    # que se carga DecisionEngine.ps1), un texto suelto NO tiene
+    # una propiedad .Count de verdad, así que $systems.Count más
+    # abajo lanzaba "la propiedad Count no existe" y rompía el
+    # resumen de CUALQUIER limpieza de un solo sistema. Envolver
+    # en @() garantiza que $systems sea siempre un array, tenga
+    # 0, 1 o más sistemas.
+    #
+
+    $systems = @(
+        $Plan.Actions |
+            ForEach-Object {
+                if([string]::IsNullOrWhiteSpace($_.System))
+                {
+                    Split-Path (Split-Path $_.Source -Parent) -Leaf
+                }
+                else
+                {
+                    $_.System
+                }
+            } |
+            Sort-Object -Unique
+    )
 
     return [PSCustomObject]@{
 
@@ -322,6 +431,12 @@ function Show-CleanPreview {
     Write-Host (T "plan.previewTitle")
     Write-Host "==============================================" -ForegroundColor Cyan
     Write-Host ""
+
+    if($Global:Settings.PreviewOnly)
+    {
+        Write-Host (T "plan.previewOnlyNotice") -ForegroundColor DarkYellow
+        Write-Host ""
+    }
 
     foreach($action in $Actions)
     {
@@ -471,7 +586,18 @@ function Export-CleanPlan {
         $Plan,
 
         [Parameter(Mandatory)]
-        [string]$OutputFolder
+        [string]$OutputFolder,
+
+        #
+        # Solo se indica en el primer export de cada ejecución de
+        # "Limpiar ROMs duplicadas" (antes de tocar nada), que es
+        # cuando de verdad empieza una limpieza nueva. El segundo
+        # export (después de ejecutar, para anotar los archivos
+        # asociados) NO debe rotar nada: sigue siendo la MISMA
+        # sesión, solo se está actualizando su registro final.
+        #
+
+        [switch]$Rotate
 
     )
 
@@ -485,6 +611,11 @@ function Export-CleanPlan {
     $csvFile = Join-Path $OutputFolder "CleanPlan.csv"
 
     $htmlFile = Join-Path $OutputFolder "CleanPlan.html"
+
+    if($Rotate)
+    {
+        Move-CleanPlanToHistory -OutputFolder $OutputFolder
+    }
 
     #
     # JSON completo
@@ -525,6 +656,166 @@ function Export-CleanPlan {
 
         Html = $htmlFile
 
+    }
+
+}
+
+# ============================================================
+# Añade acciones MOVE al CleanPlan.json ya existente, sin tocar
+# lo que ya había.
+#
+# La usan Invoke-HackOrganizer e Invoke-HackDeduplication
+# (HackOrganizer.ps1) para que sus movimientos —organizar hacks
+# sueltos en "# Hacks y Otros #", y mover sus duplicados exactos a
+# _duplicates— también los cubra "Deshacer la última limpieza",
+# igual que los movimientos de la limpieza normal de ROMs.
+#
+# Solo actualiza el JSON (lo que de verdad lee UndoManager.ps1),
+# no el CSV ni el HTML: esos son el informe de "qué se hizo en la
+# limpieza normal de ROMs", un concepto distinto.
+# ============================================================
+
+function Add-CleanPlanEntries {
+
+    param(
+
+        [Parameter(Mandatory)]
+        [string]$Root,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [array]$NewActions
+
+    )
+
+    if($NewActions.Count -eq 0)
+    {
+        return
+    }
+
+    $outputFolder = Join-Path $Root "Resultado"
+
+    if(!(Test-Path -LiteralPath $outputFolder))
+    {
+        New-Item -ItemType Directory -Path $outputFolder | Out-Null
+    }
+
+    $jsonFile = Join-Path $outputFolder "CleanPlan.json"
+
+    $existingActions = @()
+
+    if(Test-Path -LiteralPath $jsonFile)
+    {
+        try
+        {
+            $existingActions = @(Get-Content -LiteralPath $jsonFile -Raw | ConvertFrom-Json)
+        }
+        catch
+        {
+            #
+            # Si el archivo existente está dañado, mejor no
+            # arriesgarse a perder las acciones nuevas: se
+            # continúa como si no hubiera nada previo.
+            #
+
+            $existingActions = @()
+        }
+    }
+
+    $allActions = @($existingActions) + @($NewActions)
+
+    $allActions |
+        ConvertTo-Json -Depth 10 |
+        Set-Content $jsonFile -Encoding UTF8
+
+}
+
+# ============================================================
+# Mueve el CleanPlan.json actual (si existe) a
+# Resultado\History\, con marca de tiempo en el nombre, antes de
+# que empiece a escribirse uno nuevo. Así "Deshacer la última
+# limpieza" puede ofrecer no solo la más reciente, sino también
+# sesiones anteriores.
+#
+# Solo se llama al EMPEZAR una limpieza nueva (Export-CleanPlan
+# -Rotate), nunca al reexportar la misma sesión ya en curso.
+#
+# También recorta el historial a
+# $Global:Settings.UndoHistoryLimit archivos, borrando los más
+# antiguos si hace falta, para que la carpeta no crezca sin límite.
+# ============================================================
+
+function Move-CleanPlanToHistory {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$OutputFolder
+    )
+
+    $currentJson = Join-Path $OutputFolder "CleanPlan.json"
+
+    if(!(Test-Path -LiteralPath $currentJson))
+    {
+        #
+        # No había ninguna limpieza previa (primera vez que se
+        # ejecuta el programa, o Resultado\ recién creada) — no
+        # hay nada que archivar todavía.
+        #
+
+        return
+    }
+
+    $historyFolder = Join-Path $OutputFolder "History"
+
+    if(!(Test-Path -LiteralPath $historyFolder))
+    {
+        New-Item -ItemType Directory -Path $historyFolder | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+
+    $historyFile = Join-Path $historyFolder "CleanPlan_$timestamp.json"
+
+    #
+    # Por si dos rotaciones cayeran en el mismo segundo (poco
+    # probable, pero gratis evitarlo): se añade un sufijo hasta
+    # encontrar un nombre libre.
+    #
+
+    $suffix = 1
+
+    while(Test-Path -LiteralPath $historyFile)
+    {
+        $historyFile = Join-Path $historyFolder "CleanPlan_$timestamp`_$suffix.json"
+        $suffix++
+    }
+
+    Copy-Item -LiteralPath $currentJson -Destination $historyFile
+
+    #
+    # Recorte del historial
+    #
+
+    $limit = $Global:Settings.UndoHistoryLimit
+
+    if($null -eq $limit -or $limit -lt 0)
+    {
+        $limit = 10
+    }
+
+    $existing = @(
+        Get-ChildItem -LiteralPath $historyFolder -Filter "CleanPlan_*.json" |
+            Sort-Object LastWriteTime -Descending
+    )
+
+    if($existing.Count -gt $limit)
+    {
+        $toDelete = $existing | Select-Object -Skip $limit
+
+        foreach($old in $toDelete)
+        {
+            Remove-Item -LiteralPath $old.FullName -Force -ErrorAction SilentlyContinue
+        }
     }
 
 }

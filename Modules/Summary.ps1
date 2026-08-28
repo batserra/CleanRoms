@@ -36,15 +36,25 @@ function Show-SystemSummary {
     param($Plan)
 
     #
-    # Cada acción lleva la ruta completa de la ROM en Source, p.ej.
-    # C:\RetroBat\roms\amstradcpc\juego.dsk -> el sistema es el
-    # nombre de la carpeta que contiene el archivo.
+    # Cada acción lleva ya el sistema real en .System (ver
+    # New-CleanAction). Como red de seguridad, si alguna acción no
+    # lo trajera (planes antiguos, por ejemplo), se recurre al
+    # cálculo a partir de la ruta — con la salvedad de que ese
+    # cálculo asume que la ROM vive justo dentro de la carpeta del
+    # sistema, y se equivocaría si viviera en una subcarpeta.
     #
 
     $actionsWithSystem = $Plan.Actions |
         ForEach-Object {
+            $systemName = $_.System
+
+            if([string]::IsNullOrWhiteSpace($systemName))
+            {
+                $systemName = Split-Path (Split-Path $_.Source -Parent) -Leaf
+            }
+
             [PSCustomObject]@{
-                System = Split-Path (Split-Path $_.Source -Parent) -Leaf
+                System = $systemName
                 Action = $_.Action
             }
         }
@@ -158,7 +168,16 @@ function Show-WarningsSummary {
     }
 
     Write-Host ""
-    Read-Host (T "summary.importantNotice")
+
+    if($Global:AutoConfirm)
+    {
+        Write-Host (T "summary.importantNotice")
+        Write-Host (T "confirm.autoConfirmed") -ForegroundColor DarkGray
+    }
+    else
+    {
+        Read-Host (T "summary.importantNotice")
+    }
 
 }
 

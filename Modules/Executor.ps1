@@ -275,10 +275,21 @@ if($Global:Settings.PreviewOnly)
             {
                 Move-Asset -Asset $asset -TargetFolder $Action.Target
                 Write-Host "[MOVE ]   + $($asset.Name)" -ForegroundColor DarkYellow
+
+                #
+                # Se anota aquí (no al crear la acción) porque hasta
+                # este momento no sabíamos con certeza qué archivos
+                # asociados existían de verdad ni si el movimiento
+                # iba a funcionar. Sin esto, "Deshacer la última
+                # limpieza" nunca podría devolver estos archivos a
+                # su sitio.
+                #
+
+                $Action.AssociatedFiles += $asset.Name
             }
             catch
             {
-                Write-Warning (T "exec.assetMoveFailed" $asset.FullName)
+                Write-Warning (T "exec.assetMoveFailed" @($asset.FullName, $_.Exception.Message))
             }
         }
     }
@@ -294,13 +305,13 @@ function Invoke-DeleteAction {
         $Action
     )
 
-    Write-Host "[DELETE] $($Action.Source)" -ForegroundColor Red
-if($Global:Settings.PreviewOnly)
-{
-    Write-Host (T "exec.previewDelete" $Action.Source) -ForegroundColor DarkRed
-    return
-}
+    if($Global:Settings.PreviewOnly)
+    {
+        Write-Host (T "exec.previewDelete" $Action.Source) -ForegroundColor DarkRed
+        return
+    }
 
+    Write-Host "[DELETE] $($Action.Source)" -ForegroundColor Red
 
     Remove-Item `
         -LiteralPath $Action.Source `
@@ -332,13 +343,13 @@ function Invoke-RenameAction {
         $Action
     )
 
-    Write-Host "[RENAME] $($Action.Source)" -ForegroundColor Cyan
+    if($Global:Settings.PreviewOnly)
+    {
+        Write-Host (T "exec.previewRename" $Action.Source) -ForegroundColor Cyan
+        return
+    }
 
-if($Global:Settings.PreviewOnly)
-{
-    Write-Host (T "exec.previewRename" $Action.Source) -ForegroundColor Cyan
-    return
-}
+    Write-Host "[RENAME] $($Action.Source)" -ForegroundColor Cyan
 
     Rename-Item `
         -LiteralPath $Action.Source `

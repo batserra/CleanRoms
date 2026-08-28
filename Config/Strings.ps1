@@ -96,7 +96,8 @@ $Global:Strings = @{
         "exec.rename"               = "[RENAME] {0} -> {1}"
         "exec.skipped"              = "[SALTADO] {0}"
         "exec.fileNotFound"         = "No existe el archivo:"
-        "exec.assetMoveFailed"      = "No se pudo mover el archivo asociado: {0}"
+        "exec.assetMoveFailed"      = "No se pudo mover el archivo asociado: {0} ({1})"
+        "asset.destinationExists"   = "Ya existe un archivo con ese nombre en el destino, no se sobrescribe: {0}"
         "exec.assetDeleteFailed"    = "No se pudo borrar el archivo asociado: {0}"
         "exec.executing"            = "Ejecutando plan..."
         "exec.done"                 = "Listo."
@@ -112,9 +113,15 @@ $Global:Strings = @{
 
         # ---------- Deshacer ----------
         "undo.title"                = "        DESHACER ÚLTIMA LIMPIEZA"
+        "undo.chooseTitle"          = "¿Qué limpieza quieres deshacer?"
+        "undo.chooseCurrent"        = "  0) La más reciente (Enter)"
+        "undo.chooseHistoryItem"    = "  {0}) {1}"
+        "undo.choosePrompt"         = "Elige un número"
         "undo.noPlanFound"          = "No se encontró ningún plan anterior en {0}."
         "undo.nothingToUndo"        = "No hay nada que deshacer (la última vez no se movió nada de verdad, o ya se deshizo)."
         "undo.restored"             = "[RESTAURADO] {0}"
+        "undo.restoredAsset"        = "               + {0}"
+        "undo.assetsRestoredCount"  = "Archivos asociados restaurados : {0}"
         "undo.skippedConflict"      = "[SALTADO] Ya existe algo en el destino, no se sobrescribe: {0}"
         "undo.summaryRestored"      = "Restaurados      : {0}"
         "undo.summarySkipped"       = "No hacía falta    : {0}"
@@ -173,6 +180,7 @@ $Global:Strings = @{
         "hackorg.totalFound"        = "Total ROMs hackeadas encontradas : {0}"
         "hackorg.confirm"           = "¿Mover estas ROMs a su propia carpeta '# Hacks y Otros #'? (S/N)"
         "hackorg.moved"             = "[MOVIDO] {0}"
+        "hackorg.reason"            = "ROM hackeada organizada en su propia carpeta"
         "hackorg.movedCount"        = "Movidos  : {0}"
         "hackorg.skippedCount"      = "Saltados : {0}"
 
@@ -184,6 +192,7 @@ $Global:Strings = @{
         "hackdedup.totalFound"      = "Total duplicados exactos encontrados : {0}"
         "hackdedup.confirmNote"     = "Nota: son copias con el mismo contenido exacto (mismo {0}), solo cambia el nombre del archivo — responder S es seguro y no se pierde nada, ya que la copia movida sigue existiendo dentro de _duplicates y se puede recuperar a mano si algún día la necesitas. Eso sí: a diferencia de la limpieza normal de ROMs, este paso concreto NO se puede deshacer con la opción 2 del menú ('Deshacer la última limpieza')."
         "hackdedup.confirmMove"     = "¿Mover los duplicados indicados arriba? (S/N)"
+        "hackdedup.reason"          = "Duplicado exacto (mismo hash) dentro de '# Hacks y Otros #'"
 
         # ---------- Confirmaciones genéricas ----------
         "plan.destination"           = "Destino : {0}"
@@ -191,9 +200,14 @@ $Global:Strings = @{
         "plan.hash"                  = "{0} : {1}"
         "confirm.yes"                = "S"
         "confirm.yesNoHint"          = "(S/N)"
-        "confirm.yesPattern"         = "^[Ss]$"
+        "confirm.yesPattern"         = "^\s*(s|si|sí|y|yes)\s*$"
+        "confirm.autoConfirmed"      = "(modo no interactivo: se confirma automáticamente con S)"
+        "cli.unknownSystem"          = "Sistema no reconocido: '{0}'. Usa el nombre de carpeta tal cual aparece en RetroBat\roms (por ejemplo: snes, gba, megadrive)."
+        "cli.rootNotConfigured"      = "No se ha podido determinar la ruta de RetroBat automáticamente (primera ejecución, sin configuración previa, y la carpeta por defecto tampoco existe). Ejecuta el programa una vez sin -Yes para configurarla, o edita Config\UserSettings.json a mano."
+        "cli.usageHint"              = "Uso: .\main.ps1 -Action Clean|Orphans|All|Undo [-System <carpeta>] [-Yes] [-PreviewOnly]"
         "plan.htmlHint"              = "  - {0}  (informe visual, ábrelo con el navegador)"
         "plan.operationCancelled"    = "Operación cancelada."
+        "plan.operationCancelledDetail" = "No se ha movido NINGUNO de los {0} archivos indicados como MOVE — siguen exactamente donde estaban."
     }
 
     en = @{
@@ -278,7 +292,8 @@ $Global:Strings = @{
         "exec.rename"               = "[RENAME] {0} -> {1}"
         "exec.skipped"              = "[SKIPPED] {0}"
         "exec.fileNotFound"         = "File does not exist:"
-        "exec.assetMoveFailed"      = "Could not move the associated file: {0}"
+        "exec.assetMoveFailed"      = "Could not move the associated file: {0} ({1})"
+        "asset.destinationExists"   = "A file with that name already exists at the destination, not overwriting: {0}"
         "exec.assetDeleteFailed"    = "Could not delete the associated file: {0}"
         "exec.executing"            = "Executing plan..."
         "exec.done"                 = "Done."
@@ -294,9 +309,15 @@ $Global:Strings = @{
 
         # ---------- Undo ----------
         "undo.title"                = "        UNDO LAST CLEANUP"
+        "undo.chooseTitle"          = "Which cleanup do you want to undo?"
+        "undo.chooseCurrent"        = "  0) The most recent one (Enter)"
+        "undo.chooseHistoryItem"    = "  {0}) {1}"
+        "undo.choosePrompt"         = "Pick a number"
         "undo.noPlanFound"          = "No previous plan was found in {0}."
         "undo.nothingToUndo"        = "There is nothing to undo (last time nothing was actually moved, or it was already undone)."
         "undo.restored"             = "[RESTORED] {0}"
+        "undo.restoredAsset"        = "               + {0}"
+        "undo.assetsRestoredCount"  = "Associated files restored : {0}"
         "undo.skippedConflict"      = "[SKIPPED] Something already exists at the destination, not overwriting: {0}"
         "undo.summaryRestored"      = "Restored          : {0}"
         "undo.summarySkipped"       = "Not needed        : {0}"
@@ -355,6 +376,7 @@ $Global:Strings = @{
         "hackorg.totalFound"        = "Total hacked ROMs found : {0}"
         "hackorg.confirm"           = "Move these ROMs to their own '# Hacks y Otros #' folder? (Y/N)"
         "hackorg.moved"             = "[MOVED] {0}"
+        "hackorg.reason"            = "Hacked ROM organized into its own folder"
         "hackorg.movedCount"        = "Moved   : {0}"
         "hackorg.skippedCount"      = "Skipped : {0}"
 
@@ -366,6 +388,7 @@ $Global:Strings = @{
         "hackdedup.totalFound"      = "Total exact duplicates found : {0}"
         "hackdedup.confirmNote"     = "Note: these are copies with the exact same content (same {0}), only the file name differs — answering Y is safe and nothing is lost, since the moved copy still exists inside _duplicates and can be manually recovered if you ever need it. That said, unlike the regular ROM cleanup, this particular step CANNOT be undone with menu option 2 ('Undo the last cleanup')."
         "hackdedup.confirmMove"     = "Move the duplicates listed above? (Y/N)"
+        "hackdedup.reason"          = "Exact duplicate (same hash) inside '# Hacks y Otros #'"
 
         # ---------- Generic confirmations ----------
         "plan.destination"           = "Destination : {0}"
@@ -373,10 +396,58 @@ $Global:Strings = @{
         "plan.hash"                  = "{0} : {1}"
         "confirm.yes"                = "Y"
         "confirm.yesNoHint"          = "(Y/N)"
-        "confirm.yesPattern"         = "^[Yy]$"
+        "confirm.yesPattern"         = "^\s*(y|yes)\s*$"
+        "confirm.autoConfirmed"      = "(non-interactive mode: automatically confirmed with Y)"
+        "cli.unknownSystem"          = "Unrecognized system: '{0}'. Use the folder name exactly as it appears under RetroBat\roms (for example: snes, gba, megadrive)."
+        "cli.rootNotConfigured"      = "Could not automatically determine the RetroBat path (first run, no saved configuration, and the default folder doesn't exist either). Run the program once without -Yes to configure it, or edit Config\UserSettings.json by hand."
+        "cli.usageHint"              = "Usage: .\main.ps1 -Action Clean|Orphans|All|Undo [-System <folder>] [-Yes] [-PreviewOnly]"
         "plan.htmlHint"              = "  - {0}  (visual report, open it with your browser)"
         "plan.operationCancelled"    = "Operation cancelled."
+        "plan.operationCancelledDetail" = "NONE of the {0} files marked MOVE were moved — they're all exactly where they were."
     }
+
+}
+
+# ============================================================
+# Pregunta de confirmación S/N unificada.
+#
+# En modo interactivo (de siempre), muestra el texto de $PromptKey
+# con Read-Host y devuelve $true/$false según la respuesta.
+#
+# En modo no interactivo ($Global:AutoConfirm = $true, activado
+# con "-Yes" al ejecutar main.ps1 para tareas programadas), no
+# pregunta nada: imprime el texto igualmente (para que quede en el
+# log qué se habría preguntado) y responde "sí" automáticamente.
+#
+# Se centraliza aquí, en vez de repetir Read-Host + comparar con
+# confirm.yesPattern en cada sitio, para que todos los puntos de
+# confirmación del programa (limpieza de ROMs, huérfanos,
+# organizar hacks, deduplicar hacks) se beneficien del modo no
+# interactivo a la vez, sin tener que tocarlos uno a uno si algún
+# día cambia cómo se decide "sí"/"no".
+# ============================================================
+
+function Confirm-YesNo {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$PromptKey,
+
+        $PromptArgs = $null
+    )
+
+    $promptText = T $PromptKey $PromptArgs
+
+    if($Global:AutoConfirm)
+    {
+        Write-Host $promptText
+        Write-Host (T "confirm.autoConfirmed") -ForegroundColor DarkGray
+        return $true
+    }
+
+    $answer = Read-Host $promptText
+
+    return ($answer -match (T "confirm.yesPattern"))
 
 }
 

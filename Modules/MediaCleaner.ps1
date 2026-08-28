@@ -208,9 +208,13 @@ function Invoke-OrphanedMediaCleanup {
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 
-    $answer = Read-Host (T "media.confirmFolder" $Global:DuplicatesFolder)
+    if($Global:Settings.PreviewOnly)
+    {
+        Write-Host (T "plan.previewOnlyNotice") -ForegroundColor DarkYellow
+        Write-Host ""
+    }
 
-    if($answer -notmatch (T "confirm.yesPattern"))
+    if(-not (Confirm-YesNo "media.confirmFolder" $Global:DuplicatesFolder))
     {
         Write-Host ""
         Write-Host (T "media.cancelled")
@@ -221,14 +225,16 @@ function Invoke-OrphanedMediaCleanup {
 
     $movedCount = 0
     $skippedCount = 0
+    $previewedCount = 0
 
     foreach($orphan in $allOrphans)
     {
         $target = Get-OrphanedMediaTargetFolder -Orphan $orphan
 
-        if(!(Test-Path -LiteralPath $target))
+        if(!(Test-Path -LiteralPath $orphan.Source))
         {
-            New-Item -ItemType Directory -Path $target -Force | Out-Null
+            $skippedCount++
+            continue
         }
 
         $destination = Join-Path $target $orphan.FileName
@@ -240,10 +246,16 @@ function Invoke-OrphanedMediaCleanup {
             continue
         }
 
-        if(!(Test-Path -LiteralPath $orphan.Source))
+        if($Global:Settings.PreviewOnly)
         {
-            $skippedCount++
+            Write-Host (T "exec.previewMove" $orphan.Source) -ForegroundColor DarkYellow
+            $previewedCount++
             continue
+        }
+
+        if(!(Test-Path -LiteralPath $target))
+        {
+            New-Item -ItemType Directory -Path $target -Force | Out-Null
         }
 
         Move-Item -LiteralPath $orphan.Source -Destination $destination
@@ -256,6 +268,12 @@ function Invoke-OrphanedMediaCleanup {
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host (T "media.movedCount" $movedCount)
+
+    if($Global:Settings.PreviewOnly)
+    {
+        Write-Host (T "exec.previewOnly" $previewedCount)
+    }
+
     Write-Host (T "media.skippedCount" $skippedCount)
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""

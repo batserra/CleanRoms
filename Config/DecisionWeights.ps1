@@ -50,6 +50,12 @@ $Global:DecisionWeights = @{
 	
 	#==========================================================
     # VERSION
+    #
+    # Estas claves si se usan de verdad (Get-VersionScore, en
+    # DecisionEngine.ps1, las busca por nombre exacto antes de
+    # calcular nada). Si una ROM trae una version que no esta
+    # aqui listada (p.ej. "1.4"), se calcula sola con la misma
+    # escala (version x 100) en vez de fallar o dar 0.
     #==========================================================
 
 	Version_1_0 = 100
@@ -60,6 +66,11 @@ $Global:DecisionWeights = @{
 	
 	#==========================================================
     # REVISION
+    #
+    # Igual que con Version: se buscan por nombre exacto antes de
+    # calcular nada, asi que se pueden editar libremente. Una
+    # revision no listada (p.ej. Rev 5) se calcula sola (revision
+    # x 10).
     #==========================================================
 
 	Revision_0 = 0

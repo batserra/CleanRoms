@@ -140,9 +140,54 @@ What's new in 2.6
 - Added "Run CleanROMs.bat", a launcher that unblocks the folder and
   starts the program so first-time users don't hit the "not digitally
   signed" PowerShell error.
+- "Undo the last cleanup" can now undo more than just the very last run:
+  every completed session is archived to Resultado\History\, and the
+  menu lets you pick an older one (keeps the last 10 by default, see
+  UndoHistoryLimit in Config\Settings.ps1). It also now restores
+  associated files (save files, controller configs) moved along with a
+  ROM, not just the ROM itself.
+- New command-line parameters on main.ps1 for scheduled/unattended runs
+  (Windows Task Scheduler and similar): -Action Clean|Orphans|All|Undo,
+  -System <folder>, -Yes (auto-confirm every prompt), -PreviewOnly. See
+  "Command-line / scheduled use" below. Running main.ps1 with no
+  parameters works exactly as before.
+- Hashing (used to find duplicates, verify moves, and dedupe exact
+  copies inside "# Hacks y Otros #") now runs in parallel on large
+  batches instead of one file at a time, using PowerShell 7's
+  ForEach-Object -Parallel. Controlled by HashParallelThreshold and
+  HashParallelism in Config\Settings.ps1 (defaults: don't bother below
+  20 files, 4 at a time above that). Lower HashParallelism to 1 if
+  you're on a slow HDD and notice things got slower instead of faster.
 
 See the full user manual for details on every feature and the exact
 scoring/tie-break rules.
+
+
+Command-line / scheduled use
+------------------------------
+For unattended runs (Task Scheduler, cron under WSL, etc.), main.ps1
+accepts:
+
+    -Action Clean|Orphans|All|Undo   What to do (skips the menu entirely)
+    -System <folder>                 Which system's folder (e.g. "snes",
+                                      "gba"); omit or use "ALL" for every
+                                      configured system. Ignored by -Action
+                                      Undo.
+    -Yes                             Auto-confirm every Y/N prompt instead
+                                      of waiting for input.
+    -PreviewOnly                     Force simulation mode for this run
+                                      only, without editing Settings.ps1.
+
+Examples:
+
+    pwsh -File main.ps1 -Action Clean -System snes -Yes
+    pwsh -File main.ps1 -Action All -Yes
+    pwsh -File main.ps1 -Action Undo -Yes
+
+Without -Action, main.ps1 behaves exactly as it always has (interactive
+menu). Without -Yes, -Action still skips the menu but still asks for
+confirmation at each step, same as usual -- -Yes is what actually makes
+a run unattended.
 
 
 Reporting issues

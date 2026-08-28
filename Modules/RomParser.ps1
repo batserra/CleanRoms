@@ -223,6 +223,138 @@ function Test-RomsIdenticalContent {
 
 }
 
+# ============================================================
+# Calcula el hash de muchos archivos a la vez, en paralelo
+# cuando compensa hacerlo.
+#
+# Se usa en los dos sitios del programa que necesitan hashear
+# muchos archivos de golpe (el plan de duplicados normal, y la
+# deduplicación de "# Hacks y Otros #" por hash) — con
+# colecciones grandes, leer y hashear cientos o miles de ROMs uno
+# a uno es lo que más tarda de toda la limpieza.
+#
+# Devuelve un hashtable RutaCompleta -> hash (o $null si ese
+# archivo en concreto no se pudo hashear, igual que haría
+# Get-RomHash uno a uno).
+#
+# PowerShell 7 -Parallel abre runspaces nuevos que NO heredan las
+# funciones ni variables de la sesión actual, así que cada
+# runspace tiene que cargar Get-RomHash por su cuenta — de ahí el
+# -InitializationScript que vuelve a cargar RomParser.ps1 (solo
+# define funciones y tablas de patrones, seguro de cargar así) en
+# cada uno.
+#
+# Por debajo de $Global:Settings.HashParallelThreshold archivos,
+# el coste de arrancar los runspaces no compensa frente a
+# calcularlo todo en serie como se ha hecho siempre, así que se
+# usa el camino de siempre directamente.
+# ============================================================
+
+function Get-RomHashesParallel {
+
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [string[]]$Paths,
+
+        #
+        # Ya no se usa dentro de la función (el cálculo en
+        # paralelo usa Get-FileHash directamente, sin necesitar
+        # cargar RomParser.ps1 en cada hilo), pero se deja como
+        # parámetro opcional para no romper a quien ya la llama
+        # con -Root.
+        #
+
+        [string]$Root = $null,
+
+        [string]$Algorithm = $Global:Settings.HashAlgorithm
+    )
+
+    $result = @{}
+
+    if($null -eq $Paths -or $Paths.Count -eq 0)
+    {
+        return $result
+    }
+
+    if([string]::IsNullOrWhiteSpace($Algorithm))
+    {
+        $Algorithm = "SHA256"
+    }
+
+    #
+    # Rutas únicas: si el mismo archivo apareciera más de una vez
+    # en la lista (no debería, pero por si acaso), no hace falta
+    # hashearlo dos veces.
+    #
+
+    $uniquePaths = @($Paths | Select-Object -Unique)
+
+    $threshold = $Global:Settings.HashParallelThreshold
+
+    if($null -eq $threshold -or $threshold -lt 1)
+    {
+        $threshold = 20
+    }
+
+    if($uniquePaths.Count -lt $threshold)
+    {
+        foreach($path in $uniquePaths)
+        {
+            $result[$path] = Get-RomHash -Path $path -Algorithm $Algorithm
+        }
+
+        return $result
+    }
+
+    $throttle = [int]$Global:Settings.HashParallelism
+
+    if($throttle -lt 1)
+    {
+        $throttle = 4
+    }
+
+    #
+    # El hash se calcula aquí directamente con Get-FileHash (lo
+    # mismo que hace Get-RomHash por dentro), en vez de depender
+    # de que cada runspace en paralelo cargue Get-RomHash por su
+    # cuenta -- así no hace falta volver a cargar RomParser.ps1
+    # dentro de cada hilo (ni con -InitializationScript, cuyo
+    # comportamiento con $using: dentro de una scriptblock
+    # guardada en variable aparte puede variar según la versión
+    # de PowerShell), y el resultado es exactamente el mismo que
+    # daría Get-RomHash para el mismo archivo y algoritmo.
+    #
+
+    $parallelResults = $uniquePaths | ForEach-Object -Parallel {
+
+        $hashValue = $null
+
+        try
+        {
+            $hashValue = (Get-FileHash -LiteralPath $_ -Algorithm $using:Algorithm -ErrorAction Stop).Hash
+        }
+        catch
+        {
+            $hashValue = $null
+        }
+
+        [PSCustomObject]@{
+            Path = $_
+            Hash = $hashValue
+        }
+
+    } -ThrottleLimit $throttle
+
+    foreach($item in $parallelResults)
+    {
+        $result[$item.Path] = $item.Hash
+    }
+
+    return $result
+
+}
+
 function New-RomObject {
 
     param(
@@ -534,106 +666,18 @@ function Get-RomFlags {
 }
 
 # ============================================================
-# Normalizar título
+# NOTA: aquí existían una función Normalize-RomTitle y un
+# envoltorio Get-CleanTitle que hacían su propia normalización de
+# título, en paralelo a la de Modules\TitleNormalizer.ps1. En la
+# práctica, Cleaner.ps1 siempre llama a Update-NormalizedTitles
+# (TitleNormalizer.ps1) justo después de escanear, así que ese
+# resultado se sobreescribía siempre antes de llegar a usarse
+# para nada — pura duplicación de lógica con riesgo de que las dos
+# copias divergieran con el tiempo. Se quitaron en la limpieza de
+# código muerto de la v2.6; Parse-Rom ahora deja NormalizedTitle
+# con el nombre de archivo tal cual (ver más abajo), a la espera
+# de que Update-NormalizedTitles lo normalice de verdad.
 # ============================================================
-
-function Normalize-RomTitle {
-
-    param(
-        [Parameter(Mandatory)]
-        [string]$Title
-    )
-
-    $t = $Title.ToLower()
-
-    #
-    # Quitar acentos
-    #
-
-    $t = $t.Replace("á","a")
-    $t = $t.Replace("é","e")
-    $t = $t.Replace("í","i")
-    $t = $t.Replace("ó","o")
-    $t = $t.Replace("ú","u")
-    $t = $t.Replace("ü","u")
-    $t = $t.Replace("ñ","n")
-
-    #
-    # Regiones
-    #
-
-    foreach($region in $Global:RegionPatterns.Keys)
-    {
-        foreach($pattern in $Global:RegionPatterns[$region])
-        {
-            $t = $t -replace $pattern," "
-        }
-    }
-
-    #
-    # Idiomas
-    #
-
-    foreach($group in $Global:LanguagePatterns.Keys)
-    {
-        foreach($pattern in $Global:LanguagePatterns[$group])
-        {
-            $t = $t -replace $pattern," "
-        }
-    }
-
-    #
-    # Flags
-    #
-
-    foreach($flag in $Global:FlagPatterns.Keys)
-    {
-        $t = $t -replace $Global:FlagPatterns[$flag]," "
-    }
-
-    #
-    # Revisiones
-    #
-
-    $t = $t -replace "rev\s*[a-z0-9]+"," "
-
-    $t = $t -replace "v[0-9\.]+"," "
-
-    #
-    # Símbolos
-    #
-
-    $t = $t -replace "[\(\)\[\]\{\}]"," "
-
-    $t = $t -replace "[-_:,]"," "
-
-    #
-    # Espacios
-    #
-
-    $t = $t -replace "\s+"," "
-
-    return $t.Trim()
-
-}
-
-# ============================================================
-# Obtener título limpio
-# ============================================================
-
-function Get-CleanTitle {
-
-    param(
-        [Parameter(Mandatory)]
-        [string]$Title
-    )
-
-    $clean = Normalize-RomTitle $Title
-
-    return $clean
-
-}
-
 
 # ============================================================
 # Leer nombres de archivos dentro de un ZIP (sin descomprimir)
@@ -902,10 +946,17 @@ function Parse-Rom {
         -Extension $extension
 
     #
-    # Título normalizado (agrupación de duplicados: solo el nombre exterior)
+    # Título normalizado (agrupación de duplicados)
+    #
+    # Se deja aquí como el nombre de archivo sin más: la
+    # normalización real la hace Update-NormalizedTitles
+    # (TitleNormalizer.ps1), que Cleaner.ps1 llama justo después
+    # de escanear y que SIEMPRE sobreescribe este valor antes de
+    # que se use para agrupar nada. Ver la nota al principio de
+    # este archivo.
     #
 
-    $normalizedTitle = Normalize-RomTitle $fileName
+    $normalizedTitle = $fileName
 
     #
     # Crear objeto ROM

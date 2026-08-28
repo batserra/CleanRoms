@@ -157,9 +157,60 @@ Novedades de la 2.6
   arranca el programa para que quien lo use por primera vez no se
   encuentre con el error de "no está firmado digitalmente" de
   PowerShell.
+- "Deshacer la última limpieza" ya no se limita a la última ejecución:
+  cada sesión completada se archiva en Resultado\History\, y el menú
+  permite elegir una anterior (se conservan las últimas 10 por defecto,
+  ver UndoHistoryLimit en Config\Settings.ps1). Además ahora también
+  restaura los archivos asociados (partidas guardadas, configuraciones
+  de mando) que se hubieran movido junto con una ROM, no solo la ROM.
+- Nuevos parámetros de línea de comandos en main.ps1 para ejecuciones
+  programadas/desatendidas (Programador de tareas de Windows y
+  similares): -Action Clean|Orphans|All|Undo, -System <carpeta>, -Yes
+  (confirma automáticamente cada pregunta), -PreviewOnly. Ver "Uso por
+  línea de comandos / tareas programadas" más abajo. Ejecutar main.ps1
+  sin parámetros funciona exactamente igual que siempre.
+- El cálculo de hash (usado para encontrar duplicados, verificar
+  movimientos, y deduplicar copias exactas dentro de
+  "# Hacks y Otros #") ahora se hace en paralelo en tandas grandes, en
+  vez de un archivo cada vez, usando ForEach-Object -Parallel de
+  PowerShell 7. Se controla con HashParallelThreshold y HashParallelism
+  en Config\Settings.ps1 (por defecto: no compensa por debajo de 20
+  archivos, 4 a la vez por encima). Baja HashParallelism a 1 si tienes
+  un disco duro mecánico lento y notas que todo va más lento en vez de
+  más rápido.
 
 Consulta el manual de usuario completo para el detalle de cada función y
 las reglas exactas de puntuación/desempate.
+
+
+Uso por línea de comandos / tareas programadas
+-------------------------------------------------
+Para ejecuciones desatendidas (Programador de tareas de Windows, etc.),
+main.ps1 acepta:
+
+    -Action Clean|Orphans|All|Undo   Qué hacer (se salta el menú por
+                                      completo)
+    -System <carpeta>                Carpeta del sistema (p.ej. "snes",
+                                      "gba"); omite o usa "ALL" para
+                                      todos los sistemas configurados.
+                                      Se ignora con -Action Undo.
+    -Yes                             Confirma automáticamente cada
+                                      pregunta S/N, en vez de esperar a
+                                      que alguien responda.
+    -PreviewOnly                     Fuerza el modo simulación solo para
+                                      esta ejecución, sin tener que
+                                      editar Settings.ps1.
+
+Ejemplos:
+
+    pwsh -File main.ps1 -Action Clean -System snes -Yes
+    pwsh -File main.ps1 -Action All -Yes
+    pwsh -File main.ps1 -Action Undo -Yes
+
+Sin -Action, main.ps1 se comporta exactamente igual que siempre (menú
+interactivo). Sin -Yes, -Action sigue saltándose el menú pero sigue
+pidiendo confirmación en cada paso, como de costumbre -- -Yes es lo que
+de verdad hace que una ejecución sea desatendida.
 
 
 Cómo reportar problemas

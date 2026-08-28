@@ -3,6 +3,54 @@
 #
 # Main.ps1
 # ============================================================
+param(
+
+    #
+    # Carpeta del sistema a procesar (el nombre de carpeta tal
+    # cual, p.ej. "snes", "gba", "megadrive"), o "ALL"/vacío para
+    # todos los sistemas configurados. Si no se indica, el
+    # programa muestra el menú interactivo de siempre.
+    #
+
+    [string]$System = $null,
+
+    #
+    # Qué hacer, sin pasar por el menú interactivo:
+    #   Clean   -> igual que la opción 1 (limpiar ROMs duplicadas
+    #              + organizar hacks)
+    #   Orphans -> igual que la opción 3 (huérfanos)
+    #   All     -> igual que la opción 4 (todo)
+    #   Undo    -> igual que la opción 2 (deshacer la última
+    #              limpieza; -System se ignora en este caso)
+    #
+    # Si no se indica ningún valor, se ignoran también -System,
+    # -Yes y -PreviewOnly, y el programa arranca exactamente igual
+    # que siempre (menú interactivo).
+    #
+
+    [ValidateSet("Clean", "Orphans", "All", "Undo")]
+    [string]$Action = $null,
+
+    #
+    # Confirma automáticamente todas las preguntas S/N (pensado
+    # para tareas programadas, donde no hay nadie delante para
+    # responder). Sin esto, aunque uses -Action, el programa
+    # seguiría preguntando igual que siempre.
+    #
+
+    [switch]$Yes,
+
+    #
+    # Fuerza el modo simulación para esta ejecución concreta, sin
+    # tener que editar Config\Settings.ps1. Útil para probar una
+    # tarea programada nueva antes de dejar que mueva archivos de
+    # verdad.
+    #
+
+    [switch]$PreviewOnly
+
+)
+
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 #=========================================================
@@ -13,8 +61,38 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 . "$Root\Config\Strings.ps1"
 . "$Root\Config\DecisionWeights.ps1"
 
+#
+# Se fija ANTES de Initialize-Language / Initialize-RetroBatRoot
+# (que vienen justo debajo) para que, si es la primera vez que se
+# ejecuta el programa con -Yes y todavía no hay nada configurado,
+# esas dos funciones sepan que no deben quedarse esperando una
+# respuesta que nadie va a dar.
+#
+
+$Global:AutoConfirm = [bool]$Yes
+
 Initialize-Language -Root $Root
 Initialize-RetroBatRoot -Root $Root
+
+if($PreviewOnly)
+{
+    $Global:Settings.PreviewOnly = $true
+}
+
+if($Global:AutoConfirm -and [string]::IsNullOrWhiteSpace($Global:RetroBatRoot))
+{
+    #
+    # Modo no interactivo y no se pudo resolver ninguna ruta de
+    # RetroBat válida (primera ejecución, sin Config\UserSettings.json,
+    # y la carpeta sugerida por defecto tampoco existe). No hay
+    # ninguna respuesta segura que adivinar aquí, así que se para
+    # con un error claro en vez de quedarse esperando para siempre.
+    #
+
+    Write-Host (T "cli.rootNotConfigured") -ForegroundColor Red
+    Write-Host (T "cli.usageHint")
+    exit 1
+}
 
 #=========================================================
 # Módulos
@@ -45,6 +123,72 @@ Start-Log $Root
 
 try
 {
+
+if(![string]::IsNullOrWhiteSpace($Action))
+{
+    #--------------------------------------------------------------
+    # Modo no interactivo (-Action indicado por línea de comandos)
+    #
+    # Pensado para tareas programadas: hace exactamente lo mismo
+    # que la opción de menú equivalente, pero sin mostrar el menú
+    # ni quedarse esperando ninguna tecla al final.
+    #--------------------------------------------------------------
+
+    $systemFolders = @()
+
+    if($Action -ne "Undo")
+    {
+        if([string]::IsNullOrWhiteSpace($System) -or $System -ieq "ALL")
+        {
+            $systemFolders = @(
+                Get-SupportedSystems | ForEach-Object { Get-SystemFolder $_ }
+            )
+        }
+        else
+        {
+            $resolved = Resolve-SystemFolderArgument -System $System
+
+            if($null -eq $resolved)
+            {
+                Write-Host (T "cli.unknownSystem" $System) -ForegroundColor Red
+                Write-Host (T "cli.usageHint")
+                Stop-Log
+                exit 1
+            }
+
+            $systemFolders = @($resolved)
+        }
+    }
+
+    switch($Action)
+    {
+        "Clean"
+        {
+            Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
+            Invoke-HackOrganizer -Root $Root -SystemFolders $systemFolders
+        }
+
+        "Orphans"
+        {
+            Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+        }
+
+        "All"
+        {
+            Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
+            Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+            Invoke-HackOrganizer -Root $Root -SystemFolders $systemFolders
+        }
+
+        "Undo"
+        {
+            Invoke-UndoLastPlan -Root $Root
+        }
+    }
+
+    Stop-Log
+    exit 0
+}
 
 :mainLoop
 while($true)
@@ -84,7 +228,7 @@ switch($mainAction)
 
         Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
 
-        Invoke-HackOrganizer -SystemFolders $systemFolders
+        Invoke-HackOrganizer -Root $Root -SystemFolders $systemFolders
     }
 
     2
@@ -133,7 +277,7 @@ switch($mainAction)
 
         Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
 
-        Invoke-HackOrganizer -SystemFolders $systemFolders
+        Invoke-HackOrganizer -Root $Root -SystemFolders $systemFolders
     }
 
     5

@@ -102,77 +102,14 @@ function Group-Roms {
 
 }
 
-# ============================================================
-# Buscar grupo
-# ============================================================
-
-function Find-RomGroup {
-
-    param(
-        [array]$Groups,
-        [string]$Name
-    )
-
-    return $Groups |
-        Where-Object {
-            $_.Name -eq $Name
-        }
-
-}
-
-# ============================================================
-# Número de grupos
-# ============================================================
-
-function Get-GroupCount {
-
-    param(
-        [array]$Groups
-    )
-
-    return @($Groups).Count
-
-}
-
-# ============================================================
-# Número total de ROMs duplicadas
-# ============================================================
-
-function Get-DuplicateCount {
-
-    param(
-        [array]$Groups
-    )
-
-    $count = 0
-
-    foreach($group in $Groups)
-    {
-        $count += $group.Count
-    }
-
-    return $count
-
-}
-
-# ============================================================
-# Mostrar estadísticas
-# ============================================================
-
-function Show-GroupStatistics {
-
-    param(
-        [array]$Groups
-    )
-
-    Write-Host ""
-    Write-Host "=============================="
-    Write-Host " ESTADÍSTICAS"
-    Write-Host "=============================="
-    Write-Host ""
-
-    Write-Host "Grupos duplicados : $(Get-GroupCount $Groups)"
-    Write-Host "ROMs duplicadas   : $(Get-DuplicateCount $Groups)"
-    Write-Host ""
-
-}
+#
+# NOTA: aquí existían Find-RomGroup, Get-GroupCount,
+# Get-DuplicateCount y Show-GroupStatistics — cuatro funciones
+# auxiliares para trabajar con los grupos devueltos por
+# Group-Roms, pero ninguna llegaba a usarse desde ningún otro
+# sitio del programa (el resumen real en pantalla lo genera
+# Summary.ps1, con sus propios cálculos). Se quitaron en la
+# misma limpieza de código muerto de la v2.6 que ya afectó a
+# Test-RomEligibility (DecisionEngine.ps1) y a Normalize-RomTitle
+# / Get-CleanTitle (RomParser.ps1).
+#

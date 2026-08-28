@@ -1,6 +1,6 @@
 # ============================================================
 #
-# Beta CleanROMs v2.6 RC
+# Beta CleanROMs v2.6
 #
 # Settings.ps1
 #
@@ -20,6 +20,23 @@
 $Global:RetroBatRoot = "C:\RetroBat\roms"
 
 #--------------------------------------------------------------
+# Modo no interactivo (-Yes en main.ps1)
+#
+# BUG corregido en la v2.6: esta variable solo se asignaba dentro
+# de main.ps1 (según se indicara o no -Yes), así que en cualquier
+# otro contexto que cargue los módulos sin pasar por main.ps1
+# (por ejemplo, la suite de tests) leerla bajo
+# Set-StrictMode -Version Latest (activo desde que se carga
+# DecisionEngine.ps1) lanzaba "la variable no se ha establecido"
+# en vez de tratarla como $false. Se inicializa aquí, junto al
+# resto de valores globales por defecto, para que siempre exista
+# de entrada — main.ps1 la sigue pudiendo cambiar a $true con -Yes
+# igual que hasta ahora.
+#--------------------------------------------------------------
+
+$Global:AutoConfirm = $false
+
+#--------------------------------------------------------------
 # Configurar la ruta de RetroBat sin tener que editar el código
 #--------------------------------------------------------------
 
@@ -32,19 +49,49 @@ function Get-UserSettings {
 
     $configFile = Join-Path $Root "Config\UserSettings.json"
 
+    #
+    # BUG corregido en la v2.6: antes, si el archivo no existía
+    # todavía (primer arranque) o estaba dañado, se devolvía un
+    # [PSCustomObject]@{} completamente vacío -- sin ninguna
+    # propiedad definida, ni siquiera a $null. Como
+    # DecisionEngine.ps1 activa Set-StrictMode -Version Latest
+    # para todo el programa, leer $userConfig.Language o
+    # $userConfig.RetroBatRoot sobre ese objeto vacío lanzaba
+    # "La propiedad 'Language' no se encuentra en este objeto" en
+    # vez de devolver $null -- por ejemplo, al reconfigurar desde
+    # la opción 5 del menú si el archivo guardado no tuviera
+    # ambas claves. Ahora se garantiza que las dos propiedades
+    # existen siempre (aunque sea a $null), venga o no el archivo,
+    # y tenga o no ambas claves.
+    #
+
+    $result = [PSCustomObject]@{
+        Language     = $null
+        RetroBatRoot = $null
+    }
+
     if(Test-Path -LiteralPath $configFile)
     {
         try
         {
-            return Get-Content -LiteralPath $configFile -Raw | ConvertFrom-Json
+            $loaded = Get-Content -LiteralPath $configFile -Raw | ConvertFrom-Json
+
+            foreach($propName in @("Language", "RetroBatRoot"))
+            {
+                if($loaded.PSObject.Properties.Name -contains $propName)
+                {
+                    $result.$propName = $loaded.$propName
+                }
+            }
         }
         catch
         {
-            # Archivo de configuración dañado: se ignora
+            # Archivo de configuración dañado: se ignora, y se
+            # devuelve $result con sus valores $null de partida.
         }
     }
 
-    return [PSCustomObject]@{}
+    return $result
 
 }
 
@@ -88,9 +135,30 @@ function Initialize-Language {
     }
 
     #
-    # Primer arranque: no hay idioma guardado todavía. Este mensaje
-    # se muestra siempre en los dos idiomas a la vez, porque
-    # todavía no sabemos cuál prefiere la persona que lo está viendo.
+    # Primer arranque: no hay idioma guardado todavía.
+    #
+
+    if($Global:AutoConfirm)
+    {
+        #
+        # Modo no interactivo (-Yes): no hay nadie para elegir
+        # idioma. Se usa español por defecto y se guarda, para que
+        # las próximas ejecuciones ya no tengan que decidir nada
+        # aquí (interactivas o no).
+        #
+
+        $Global:Settings.Language = "es"
+
+        $userConfig | Add-Member -NotePropertyName "Language" -NotePropertyValue "es" -Force
+        Save-UserSettings -Root $Root -Settings $userConfig
+
+        return
+    }
+
+    #
+    # Este mensaje se muestra siempre en los dos idiomas a la vez,
+    # porque todavía no sabemos cuál prefiere la persona que lo
+    # está viendo.
     #
 
     Write-Host ""
@@ -136,6 +204,33 @@ function Initialize-RetroBatRoot {
     #
 
     $suggested = Split-Path $Root -Parent
+
+    if($Global:AutoConfirm)
+    {
+        #
+        # Modo no interactivo (-Yes): no hay nadie para escribir
+        # una ruta. Si la carpeta sugerida por defecto existe de
+        # verdad, se usa sin preguntar y se guarda. Si ni siquiera
+        # esa existe, no hay ninguna respuesta segura que adivinar
+        # — se deja $Global:RetroBatRoot vacío para que main.ps1
+        # lo detecte y pare con un error claro, en vez de quedarse
+        # aquí esperando una respuesta que nunca va a llegar.
+        #
+
+        if(Test-Path -LiteralPath $suggested)
+        {
+            $Global:RetroBatRoot = $suggested
+
+            $userConfig | Add-Member -NotePropertyName "RetroBatRoot" -NotePropertyValue $suggested -Force
+            Save-UserSettings -Root $Root -Settings $userConfig
+        }
+        else
+        {
+            $Global:RetroBatRoot = $null
+        }
+
+        return
+    }
 
     Write-Host ""
     Write-Host (T "config.rootNotSet") -ForegroundColor Cyan
@@ -214,6 +309,37 @@ $Global:Settings = @{
     KeepBestRomOnly  = $true
 
     RemoveDuplicates = $false
+
+    #
+    # Cuántas limpiezas anteriores se conservan en
+    # Resultado\History\ para poder deshacerlas con la opción
+    # "Deshacer la última limpieza" del menú, además de la más
+    # reciente (que siempre se puede deshacer, sin contar aquí).
+    # Poner a 0 desactiva el historial (solo se podría deshacer la
+    # más reciente, como en versiones anteriores).
+    #
+
+    UndoHistoryLimit = 10
+
+    #
+    # Con cuántos archivos a la vez merece la pena arrancar
+    # cálculo de hash en paralelo (PowerShell 7 -Parallel), en vez
+    # de calcularlos uno a uno como de siempre. Por debajo de este
+    # número, el coste de arrancar los procesos en paralelo no
+    # compensa.
+    #
+
+    HashParallelThreshold = 20
+
+    #
+    # Cuántos archivos se hashean a la vez como máximo cuando sí
+    # compensa paralelizar. Súbelo si tienes un disco SSD rápido y
+    # varios núcleos libres; bájalo (o pon 1) si notas que el
+    # disco duro se satura y todo va más lento en vez de más
+    # rápido.
+    #
+
+    HashParallelism = 4
 
 }
 
@@ -469,6 +595,42 @@ function Get-SystemFolder {
     }
 
     return (Join-Path $Global:RetroBatRoot $Global:SystemPaths[$System])
+
+}
+
+#--------------------------------------------------------------
+# Resolver el "-System" que se pasa por línea de comandos
+#
+# Get-SystemFolder exige el nombre largo y descriptivo tal cual
+# aparece en el menú interactivo (p.ej. "Super Nintendo (SNES)"),
+# que no es cómodo de escribir a mano en una tarea programada.
+# Esta función acepta en su lugar el nombre de la CARPETA tal
+# cual está en RetroBat\roms (p.ej. "snes"), que es lo que
+# cualquiera que configure una tarea programada va a tener a
+# mano — y, como red de seguridad, también acepta el nombre largo
+# por si acaso. Sin distinguir mayúsculas/minúsculas.
+#
+# Devuelve la ruta completa si lo reconoce, o $null si no
+# corresponde a ningún sistema soportado.
+#--------------------------------------------------------------
+
+function Resolve-SystemFolderArgument {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$System
+    )
+
+    $match = $Global:SystemPaths.GetEnumerator() | Where-Object {
+        $_.Value -ieq $System -or $_.Key -ieq $System
+    } | Select-Object -First 1
+
+    if($null -eq $match)
+    {
+        return $null
+    }
+
+    return (Join-Path $Global:RetroBatRoot $match.Value)
 
 }
 
