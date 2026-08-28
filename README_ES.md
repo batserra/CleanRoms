@@ -1,4 +1,4 @@
-# \*\*Idiomas:\*\* \[English](README.md) | \[Español](README.es.md)
+# \*\*Idiomas:\*\* \[English](README.md) | \[Español](README\_ES.md)
 
 # 
 
@@ -71,11 +71,12 @@ archivos de una carpeta descargada o descomprimida, y la política por
 defecto de PowerShell entonces exige una firma para ejecutarlos.
 
 Si prefieres ejecutar main.ps1 directamente (por ejemplo, clic derecho y
-"Ejecutar con PowerShell 7", o desde una terminal con `.\\main.ps1`) y te
+"Ejecutar con PowerShell 7", o desde una terminal con `.\\\\main.ps1`) y te
 sale ese error, basta con desbloquear la carpeta una vez y no volverá a
 pasar:
 
 &#x20;   Get-ChildItem -Path "C:\\RetroBat\\roms\\CleanRoms" -Recurse | Unblock-File
+
 
 
 La primera vez que lo ejecutes te preguntará el idioma (español/inglés)
@@ -93,9 +94,10 @@ nuevos (en particular Config\\TitleAliases.json).
 ## El menú principal
 
 &#x20;   1) Limpiar ROMs duplicadas
-    2) Deshacer la última limpieza
-    3) Limpiar imágenes/vídeos/manuales huérfanos
-    4) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas
+2) Deshacer la última limpieza
+3) Limpiar imágenes/vídeos/manuales huérfanos
+4) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas
+
 
 
 Cada acción muestra una previsualización completa y pide confirmación
@@ -204,24 +206,26 @@ Para ejecuciones desatendidas (Programador de tareas de Windows, etc.),
 main.ps1 acepta:
 
 &#x20;   -Action Clean|Orphans|All|Undo   Qué hacer (se salta el menú por
-                                      completo)
-    -System <carpeta>                Carpeta del sistema (p.ej. "snes",
-                                      "gba"); omite o usa "ALL" para
-                                      todos los sistemas configurados.
-                                      Se ignora con -Action Undo.
-    -Yes                             Confirma automáticamente cada
-                                      pregunta S/N, en vez de esperar a
-                                      que alguien responda.
-    -PreviewOnly                     Fuerza el modo simulación solo para
-                                      esta ejecución, sin tener que
-                                      editar Settings.ps1.
+completo)
+-System <carpeta>                Carpeta del sistema (p.ej. "snes",
+"gba"); omite o usa "ALL" para
+todos los sistemas configurados.
+Se ignora con -Action Undo.
+-Yes                             Confirma automáticamente cada
+pregunta S/N, en vez de esperar a
+que alguien responda.
+-PreviewOnly                     Fuerza el modo simulación solo para
+esta ejecución, sin tener que
+editar Settings.ps1.
+
 
 
 Ejemplos:
 
 &#x20;   pwsh -File main.ps1 -Action Clean -System snes -Yes
-    pwsh -File main.ps1 -Action All -Yes
-    pwsh -File main.ps1 -Action Undo -Yes
+pwsh -File main.ps1 -Action All -Yes
+pwsh -File main.ps1 -Action Undo -Yes
+
 
 
 Sin -Action, main.ps1 se comporta exactamente igual que siempre (menú
@@ -238,6 +242,7 @@ quite alguna funcionalidad, escribe un correo con el mayor detalle
 posible (qué hiciste, qué esperabas, y qué pasó en su lugar) a:
 
 &#x20;   batserra@gmail.com
+
 
 
 Si el problema tiene que ver con ROMs que no se agrupan como esperabas,
