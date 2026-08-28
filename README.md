@@ -1,3 +1,5 @@
+**Languages:** [English](README.md) | [Español](README.es.md)
+
 Beta CleanROMs v2.6
 ===================
 
