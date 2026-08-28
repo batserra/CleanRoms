@@ -1,6 +1,4 @@
-# \*\*Idiomas:\*\* \[English](README.md) | \[Español](README\_ES.md)
-
-# 
+**Languages:** [English](README.md) | [Español](README_ES.md)
 
 # Beta CleanROMs v2.6
 
