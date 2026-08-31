@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: New-CleanAction acepta un -Hash ya calculado (de
 # Get-RomHashesParallel) para no volver a leer y hashear el
 # mismo archivo por segunda vez al construir el plan.

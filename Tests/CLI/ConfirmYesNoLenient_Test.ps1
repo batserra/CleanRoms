@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: confirm.yesPattern exigía escribir EXACTAMENTE
 # "S" (una sola letra, sin espacios) para confirmar mover
 # archivos -- cualquier variante razonable como "si", "sí", con
@@ -64,5 +64,5 @@ finally
     $Global:Settings.Language = $originalLanguage
     $Global:AutoConfirm = $originalAutoConfirm
     Remove-Item Function:\Read-Host -ErrorAction SilentlyContinue
-    Remove-Item Variable:\currentAnswer -Scope Script -ErrorAction SilentlyContinue
+    Remove-Variable -Name currentAnswer -Scope Script -ErrorAction SilentlyContinue
 }

@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: los movimientos de Invoke-HackOrganizer e
 # Invoke-HackDeduplication ahora también quedan registrados en
 # Resultado\CleanPlan.json (vía Add-CleanPlanEntries), para que

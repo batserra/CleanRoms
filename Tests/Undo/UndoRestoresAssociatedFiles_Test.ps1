@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: "Deshacer la última limpieza" ahora también restaura
 # los archivos asociados (partida guardada, configuración de
 # mando...) que se hubieran movido junto con la ROM, no solo la

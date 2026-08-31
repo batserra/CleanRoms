@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: parametro "-System" de main.ps1 (modo no interactivo).
 #
 # Resolve-SystemFolderArgument debe aceptar el nombre de CARPETA

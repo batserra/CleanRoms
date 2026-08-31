@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: cálculo de hash en paralelo (Get-RomHashesParallel)
 # para acelerar colecciones grandes -- usado por el plan de
 # limpieza normal (Invoke-CleanPreview) y por la deduplicación

@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Casos de prueba conocidos (regresión)
 #
 # Ejecuta todos los casos definidos en Tests\TestCases.ps1 contra

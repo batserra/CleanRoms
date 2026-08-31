@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: Get-VersionScore y Get-RevisionScore
 # (DecisionEngine.ps1) calculaban la puntuación con una fórmula
 # fija que daba una DÉCIMA PARTE de lo que indica la tabla de

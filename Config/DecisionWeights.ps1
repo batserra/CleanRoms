@@ -1,4 +1,4 @@
-$Global:DecisionWeights = @{
+﻿$Global:DecisionWeights = @{
 
     #==========================================================
     # REGIÓN

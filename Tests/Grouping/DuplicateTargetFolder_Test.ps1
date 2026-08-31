@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: Get-DuplicateTargetFolder calculaba el nombre
 # del "sistema" haciendo Split-Path dos veces sobre la ruta de
 # la ROM, asumiendo que ésta vivía siempre justo dentro de la

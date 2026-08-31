@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: Move-Asset (AssetMover.ps1) usaba
 # Move-Item -Force directamente, que si ya existía un archivo con
 # el mismo nombre en la carpeta destino (p.ej. una partida

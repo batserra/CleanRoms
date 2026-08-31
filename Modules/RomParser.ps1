@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #
 # Beta CleanROMs v2.6
 #
@@ -17,10 +17,10 @@ $Global:RegionPatterns = @{
     ESP = @(
         '\(ESP\)',
         '\[ESP\]',
-        '\bESP\b',
+        '(?<![A-Za-z])ESP(?![A-Za-z])',
         'Spanish',
         'Español',
-        '\bSpain\b'
+        '(?<![A-Za-z])Spain(?![A-Za-z])'
     )
 
     EUR = @(
@@ -74,7 +74,7 @@ $Global:LanguagePatterns = @{
 
     '\[ESP\]',
 
-    '\bESP\b'
+    '(?<![A-Za-z])ESP(?![A-Za-z])'
 
 )
 
@@ -142,26 +142,62 @@ $Global:FlagPatterns = @{
     # decidir si una ROM se EXCLUYE de la agrupacion (Grouper.ps1);
     # el patron "Hack" de arriba se sigue usando para la puntuacion.
     #
+    # BUG corregido en la v2.6: antes era '\bHack\b'. El limite de
+    # palabra \b de .NET NO considera el guion bajo como separador
+    # (es un caracter de "palabra" como una letra), así que un
+    # nombre de archivo con guiones bajos en vez de espacios/paréntesis
+    # (p.ej. "Street_Fighter_5_Hack_.smc", un estilo de renombrado
+    # frecuente en sets de SNES — ver sección 6 del manual) nunca
+    # coincidía con \bHack\b, y esa ROM se trataba como si no fuera
+    # un hack: nunca se organizaba en "# Hacks y Otros #", y por
+    # tanto nunca se comparaba por hash con su copia ya organizada
+    # allí, quedando duplicada sin que el programa lo detectara.
+    # El patrón nuevo trata cualquier caracter que NO sea una letra
+    # (guion bajo incluido) como límite válido.
+    #
 
-    NamedHack  = '\bHack\b'
+    NamedHack  = '(?<![A-Za-z])Hack(?![A-Za-z])'
 
-    Translation = '\[T[\+\-].*?\]|T\([A-Za-z]{2,3}\)|Traducci[oó]n|\bTranslation\b|\bTrans\b'
+    #
+    # Mismo arreglo que en NamedHack: se usan límites basados en
+    # "no es una letra" en vez de \b, para que un nombre con
+    # guiones bajos (p.ej. "Juego_Translation_ESP_.smc") también
+    # se reconozca.
+    #
 
-    Beta       = 'Beta'
+    Translation = '\[T[\+\-].*?\]|T\([A-Za-z]{2,3}\)|Traducci[oó]n|(?<![A-Za-z])Translation(?![A-Za-z])|(?<![A-Za-z])Trans(?![A-Za-z])'
 
-    Prototype  = 'Proto|Prototype'
+    #
+    # BUG corregido en la v2.6: estos ocho patrones no tenían
+    # NINGÚN límite de palabra (coincidían con la subcadena en
+    # cualquier sitio del nombre). Comprobado con una colección
+    # real: "Demo" coincidía dentro de "Demon" (Demon's Crest,
+    # Demon Attack, Laplace's Demon...) y "Demolition" (Demolition
+    # Man...); "Proto" dentro de "Protoman"/"Protocol"; "Pirate"
+    # dentro de "Pirates" en juegos legítimos con piratas en la
+    # trama (Pirates of the Caribbean, Pirates of Dark Water...).
+    # Estos juegos acababan organizados en "# Hacks y Otros #"
+    # sin ser ni hacks, ni demos, ni prototipos, ni copias
+    # pirateadas. Mismo arreglo que en NamedHack/Translation: se
+    # usan límites basados en "no es una letra" en vez de
+    # coincidencia de subcadena libre.
+    #
 
-    Demo       = 'Demo'
+    Beta       = '(?<![A-Za-z])Beta(?![A-Za-z])'
 
-    Homebrew   = 'Homebrew'
+    Prototype  = '(?<![A-Za-z])(Prototype|Prototipo|Proto)(?![A-Za-z])'
 
-    Pirate     = 'Pirate'
+    Demo       = '(?<![A-Za-z])Demo(?![A-Za-z])'
 
-    Sample     = 'Sample'
+    Homebrew   = '(?<![A-Za-z])Homebrew(?![A-Za-z])'
 
-    Preview    = 'Preview'
+    Pirate     = '(?<![A-Za-z])Pirate(?![A-Za-z])'
 
-    Kiosk      = 'Kiosk'
+    Sample     = '(?<![A-Za-z])Sample(?![A-Za-z])'
+
+    Preview    = '(?<![A-Za-z])Preview(?![A-Za-z])'
+
+    Kiosk      = '(?<![A-Za-z])Kiosk(?![A-Za-z])'
 
 }
 
@@ -237,12 +273,9 @@ function Test-RomsIdenticalContent {
 # archivo en concreto no se pudo hashear, igual que haría
 # Get-RomHash uno a uno).
 #
-# PowerShell 7 -Parallel abre runspaces nuevos que NO heredan las
-# funciones ni variables de la sesión actual, así que cada
-# runspace tiene que cargar Get-RomHash por su cuenta — de ahí el
-# -InitializationScript que vuelve a cargar RomParser.ps1 (solo
-# define funciones y tablas de patrones, seguro de cargar así) en
-# cada uno.
+# El hash se calcula directamente con Get-FileHash en cada hilo
+# en paralelo (PowerShell 7 -Parallel), sin depender de cargar
+# ninguna función externa dentro del runspace.
 #
 # Por debajo de $Global:Settings.HashParallelThreshold archivos,
 # el coste de arrancar los runspaces no compensa frente a
@@ -252,20 +285,11 @@ function Test-RomsIdenticalContent {
 
 function Get-RomHashesParallel {
 
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
         [string[]]$Paths,
-
-        #
-        # Ya no se usa dentro de la función (el cálculo en
-        # paralelo usa Get-FileHash directamente, sin necesitar
-        # cargar RomParser.ps1 en cada hilo), pero se deja como
-        # parámetro opcional para no romper a quien ya la llama
-        # con -Root.
-        #
-
-        [string]$Root = $null,
 
         [string]$Algorithm = $Global:Settings.HashAlgorithm
     )
@@ -559,7 +583,15 @@ function Get-RomVersion {
         [string]$Title
     )
 
-    if($Title -match '\bv\s*([0-9]+(?:\.[0-9]+)?)\b')
+    #
+    # BUG corregido en la v2.6: antes usaba \bv...\b. Igual que con
+    # NamedHack, el guion bajo no es un límite de palabra válido
+    # para \b, así que "Game_V1.1_.smc" (estilo de renombrado con
+    # guiones bajos, ver sección 6 del manual) nunca detectaba la
+    # versión. Se sustituye por límites basados en "no es una letra".
+    #
+
+    if($Title -match '(?<![A-Za-z])v\s*([0-9]+(?:\.[0-9]+)?)(?![A-Za-z])')
     {
         return $Matches[1]
     }
@@ -588,7 +620,14 @@ function Get-RomRevision {
     # etiqueta "(Rev X)"/"(Rev.X)"/"(RevX)".
     #
 
-    if($Title -match '\bRev(?![a-z])\.?\s*([0-9A-Za-z]{1,3})\b')
+    #
+    # BUG corregido en la v2.6: antes usaba \bRev...\b. Mismo caso
+    # que NamedHack y Get-RomVersion: el guion bajo no cuenta como
+    # límite para \b, así que "Game_Rev2_.smc" nunca detectaba la
+    # revisión. Se sustituye por límites basados en "no es una letra".
+    #
+
+    if($Title -match '(?<![A-Za-z])Rev(?![a-z])\.?\s*([0-9A-Za-z]{1,3})(?![A-Za-z])')
     {
         return $Matches[1]
     }

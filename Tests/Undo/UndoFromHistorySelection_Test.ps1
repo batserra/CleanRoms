@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: "Deshacer la última limpieza" ahora puede deshacer una
 # sesión anterior del historial (Resultado\History\), no solo la
 # más reciente (Resultado\CleanPlan.json).

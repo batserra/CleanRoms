@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: Show-SystemSummary (Summary.ps1) y
 # Get-CleanStatistics (Cleaner.ps1) calculaban el "sistema" de
 # cada acción a partir de la ruta (Split-Path dos veces), el

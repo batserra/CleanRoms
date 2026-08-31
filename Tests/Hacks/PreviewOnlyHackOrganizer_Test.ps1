@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: ni Invoke-HackOrganizer (organizar hacks sueltos
 # en "# Hacks y Otros #") ni Invoke-HackDeduplication (deduplicar
 # copias exactas dentro de esa carpeta) comprobaban en ningun

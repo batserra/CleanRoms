@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # ZIP con una única ROM dentro
 # El propio .zip no lleva ninguna etiqueta en su nombre, pero
 # el archivo de dentro sí -> debe detectarse igualmente

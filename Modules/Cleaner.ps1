@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Beta CleanROMs v2.6
 #
 # Cleaner.ps1
@@ -289,7 +289,7 @@ function Invoke-CleanPreview {
         $Groups | ForEach-Object { $_.Roms } | ForEach-Object { $_.FullPath }
     )
 
-    $hashLookup = Get-RomHashesParallel -Paths $allPaths -Root $Root
+    $hashLookup = Get-RomHashesParallel -Paths $allPaths
 
     $actions = @()
 

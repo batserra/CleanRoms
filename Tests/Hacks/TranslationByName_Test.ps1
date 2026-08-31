@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Traducción de fans detectada por el nombre del archivo
 # No debe agruparse (ni compararse, ni moverse) con el original
 # ============================================================

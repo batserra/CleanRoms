@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Group-Roms debe guardar el nombre del sistema en cada grupo
 # que devuelve (campo .System), para que después
 # Get-DuplicateTargetFolder pueda usarlo directamente en vez de

@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: Invoke-OrphanedMediaCleanup (MediaCleaner.ps1)
 # no comprobaba en ningún punto $Global:Settings.PreviewOnly, así
 # que con PreviewOnly=$true los archivos huérfanos se movían

@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Beta CleanROMs v2.6
 #
 # HackOrganizer.ps1
@@ -73,17 +73,7 @@ function Group-RomsByHash {
         # sería "# Hacks y Otros #", no el sistema).
         #
 
-        [string]$SystemName = $null,
-
-        #
-        # Necesario para Get-RomHashesParallel (localiza
-        # Modules\RomParser.ps1 para cargarlo en cada runspace
-        # paralelo). Opcional para no romper compatibilidad con
-        # quien llamara a esta función sin él: sin -Root, se
-        # calculan los hashes en serie, uno a uno, como antes.
-        #
-
-        [string]$Root = $null
+        [string]$SystemName = $null
     )
  
     #
@@ -99,35 +89,23 @@ function Group-RomsByHash {
         return @()
     }
  
-    if([string]::IsNullOrWhiteSpace($Root))
-    {
-        $withHash = foreach($rom in $Roms)
-        {
-            $hash = Get-RomHash -Path $rom.FullPath
- 
-            if($hash)
-            {
-                [PSCustomObject]@{
-                    Rom  = $rom
-                    Hash = $hash
-                }
-            }
-        }
-    }
-    else
-    {
-        $hashLookup = Get-RomHashesParallel -Paths @($Roms.FullPath) -Root $Root
+    #
+    # Get-RomHashesParallel ya decide sola si compensa calcular en
+    # paralelo o en serie según cuántos archivos haya, así que no
+    # hace falta ninguna rama aparte aquí.
+    #
 
-        $withHash = foreach($rom in $Roms)
-        {
-            $hash = $hashLookup[$rom.FullPath]
+    $hashLookup = Get-RomHashesParallel -Paths @($Roms.FullPath)
 
-            if($hash)
-            {
-                [PSCustomObject]@{
-                    Rom  = $rom
-                    Hash = $hash
-                }
+    $withHash = foreach($rom in $Roms)
+    {
+        $hash = $hashLookup[$rom.FullPath]
+
+        if($hash)
+        {
+            [PSCustomObject]@{
+                Rom  = $rom
+                Hash = $hash
             }
         }
     }
@@ -379,7 +357,7 @@ function Invoke-HackDeduplication {
 
         $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
  
-        $dupeGroups = @(Group-RomsByHash -Roms $roms -SystemName $systemName -Root $Root)
+        $dupeGroups = @(Group-RomsByHash -Roms $roms -SystemName $systemName)
  
         if($dupeGroups.Count -gt 0)
         {

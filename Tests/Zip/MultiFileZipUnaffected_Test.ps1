@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # ZIP con varios archivos dentro (set tipo MAME/arcade)
 # No debe tratarse como "una sola ROM": se sigue detectando
 # todo por el nombre del propio .zip, igual que antes

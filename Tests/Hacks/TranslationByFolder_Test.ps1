@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Traducción detectada por la carpeta contenedora
 # Aunque el nombre del archivo no lo diga, si está dentro de
 # una carpeta como "Traducciones" debe marcarse igualmente

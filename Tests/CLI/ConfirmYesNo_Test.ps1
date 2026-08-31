@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: modo no interactivo (-Yes en main.ps1) para poder
 # programar CleanROMs con el Programador de tareas de Windows sin
 # que se quede esperando una respuesta S/N.

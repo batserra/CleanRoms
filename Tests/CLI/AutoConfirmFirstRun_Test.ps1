@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: en modo no interactivo (-Yes), si era la
 # primera vez que se ejecutaba el programa (sin
 # Config\UserSettings.json todavía), Initialize-Language e

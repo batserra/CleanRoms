@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # MEJORA: "Deshacer la última limpieza" ahora puede ofrecer más
 # de una sesión anterior, no solo la más reciente.
 #

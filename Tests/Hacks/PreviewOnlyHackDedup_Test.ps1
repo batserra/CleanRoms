@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: Invoke-HackDeduplication tampoco comprobaba
 # $Global:Settings.PreviewOnly antes de mover los duplicados
 # exactos (mismo hash) que encuentra dentro de "# Hacks y Otros #".

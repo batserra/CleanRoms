@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Hack detectado por la carpeta contenedora
 # Aunque el nombre del archivo no diga "Hack", si está dentro
 # de una carpeta como "# Hacks #" debe marcarse igualmente
