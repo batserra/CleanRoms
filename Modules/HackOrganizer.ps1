@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# Beta CleanROMs v2.6
+# CleanROMs v2.7
 #
 # HackOrganizer.ps1
 #

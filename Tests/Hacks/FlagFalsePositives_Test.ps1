@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # BUG corregido: los flags Beta, Prototype, Demo, Homebrew,
 # Pirate, Sample, Preview y Kiosk no tenian NINGUN limite de
 # palabra -- coincidian con la subcadena en cualquier sitio del

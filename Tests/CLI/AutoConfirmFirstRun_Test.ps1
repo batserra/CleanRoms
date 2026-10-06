@@ -24,6 +24,8 @@ New-Item -ItemType Directory -Path $fakeProgramRoot -Force | Out-Null
 $originalAutoConfirm = $Global:AutoConfirm
 $originalRoot = $Global:RetroBatRoot
 $originalLanguage = $Global:Settings.Language
+$originalPriority = $Global:Settings.RomPriorityLanguage
+$originalWeights = $Global:DecisionWeights
 
 function global:Read-Host
 {
@@ -42,6 +44,18 @@ try
         $Global:Settings.Language `
         "Initialize-Language con AutoConfirm: debe elegir español sin preguntar"
 
+    Initialize-RomPriorityLanguage -Root $fakeProgramRoot
+
+    Assert-Equal `
+        "es" `
+        $Global:Settings.RomPriorityLanguage `
+        "Initialize-RomPriorityLanguage con AutoConfirm: debe elegir español sin preguntar"
+
+    Assert-Equal `
+        $Global:DecisionWeights_ES `
+        $Global:DecisionWeights `
+        "Initialize-RomPriorityLanguage con AutoConfirm: debe activar la tabla de prioridad español"
+
     Initialize-RetroBatRoot -Root $fakeProgramRoot
 
     Assert-Equal `
@@ -55,12 +69,19 @@ try
         "es" `
         $saved.Language `
         "Initialize-Language con AutoConfirm: la eleccion debe guardarse en UserSettings.json"
+
+    Assert-Equal `
+        "es" `
+        $saved.RomPriorityLanguage `
+        "Initialize-RomPriorityLanguage con AutoConfirm: la eleccion debe guardarse en UserSettings.json"
 }
 finally
 {
     $Global:AutoConfirm = $originalAutoConfirm
     $Global:RetroBatRoot = $originalRoot
     $Global:Settings.Language = $originalLanguage
+    $Global:Settings.RomPriorityLanguage = $originalPriority
+    $Global:DecisionWeights = $originalWeights
 
     Remove-Item Function:\Read-Host -ErrorAction SilentlyContinue
     Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue

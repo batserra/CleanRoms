@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# Beta CleanROMs v2.6
+# CleanROMs v2.7
 #
 # Cleaner.ps1
 #
@@ -526,7 +526,7 @@ function Build-CleanPlan {
     $plan | Add-Member NoteProperty TotalRename $plan.RenameActions.Count
 	$plan | Add-Member NoteProperty TotalActions $Actions.Count
 	$plan | Add-Member NoteProperty BuildDate (Get-Date)
-	$plan | Add-Member NoteProperty Version "Beta Clean Roms v2.6"
+	$plan | Add-Member NoteProperty Version "CleanROMs v2.7"
 
     return $plan
 
@@ -876,7 +876,7 @@ function New-CleanPlanHtmlReport {
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Beta CleanROMs - Informe de limpieza</title>
+<title>CleanROMs - Informe de limpieza</title>
 <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; background:#f4f6f8; color:#222; margin:0; padding:24px; }
     h1 { color:#1b3a5c; margin-bottom:4px; }
@@ -900,7 +900,7 @@ function New-CleanPlanHtmlReport {
 </style>
 </head>
 <body>
-    <h1>Beta CleanROMs &mdash; Informe de limpieza</h1>
+    <h1>CleanROMs &mdash; Informe de limpieza</h1>
     <div class="meta">Generado: $date</div>
     <div class="stats">
         <div class="stat keep"><span class="n">$keepCount</span>KEEP</div>

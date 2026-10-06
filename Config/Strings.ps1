@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# Beta CleanROMs v2.6
+# CleanROMs v2.7
 #
 # Strings.ps1
 #
@@ -17,7 +17,7 @@ $Global:Strings = @{
     es = @{
 
         # ---------- Menú / banner ----------
-        "banner.title"              = "BETA CLEAN ROMS v2.6"
+        "banner.title"              = "CLEAN ROMS v2.7"
         "menu.whatToDo"             = "¿Qué quieres hacer?"
         "menu.option1"              = " 1) Limpiar ROMs duplicadas"
         "menu.option2"              = " 2) Deshacer la última limpieza"
@@ -39,12 +39,21 @@ $Global:Strings = @{
 
         # ---------- Menú de configuración ----------
         "config.menuTitle"          = "== Configuración =="
-        "config.menuPath"           = "Ruta de RetroBat actual : {0}"
-        "config.menuLanguage"       = "Idioma actual           : {0}"
+        "config.menuPath"           = "Ruta de RetroBat actual        : {0}"
+        "config.menuUiLanguage"     = "Idioma de la interfaz actual   : {0}"
+        "config.menuRomPriority"    = "Prioridad de ROMs actual       : {0}"
         "config.opt1"               = " 1) Cambiar la ruta de RetroBat"
-        "config.opt2"               = " 2) Cambiar el idioma"
-        "config.opt3"               = " 3) Cambiar ambas cosas"
+        "config.opt2"               = " 2) Cambiar el idioma de la interfaz"
+        "config.opt3"               = " 3) Cambiar la prioridad de ROMs (español/inglés)"
+        "config.opt4"               = " 4) Cambiar todo lo anterior"
         "config.opt0"               = " 0) Volver al menú principal"
+
+        "priority.askTitle"         = "¿Qué ROMs quieres que gane el programa cuando compitan dos versiones del mismo juego?"
+        "priority.opt1"             = " 1) Español (prioriza España > Europa > USA > Japón)"
+        "priority.opt2"             = " 2) Inglés (prioriza USA > Europa > España > Japón)"
+        "priority.prompt"           = "Opción"
+        "priority.labelEs"          = "Español"
+        "priority.labelEn"          = "Inglés"
 
         # ---------- Idioma (primer arranque) ----------
         "lang.prompt.title"         = "Selecciona idioma / Select language:"
@@ -213,7 +222,7 @@ $Global:Strings = @{
     en = @{
 
         # ---------- Menu / banner ----------
-        "banner.title"              = "BETA CLEAN ROMS v2.6"
+        "banner.title"              = "CLEAN ROMS v2.7"
         "menu.whatToDo"             = "What do you want to do?"
         "menu.option1"              = " 1) Clean up duplicate ROMs"
         "menu.option2"              = " 2) Undo the last cleanup"
@@ -235,12 +244,21 @@ $Global:Strings = @{
 
         # ---------- Configuration menu ----------
         "config.menuTitle"          = "== Configuration =="
-        "config.menuPath"           = "Current RetroBat path : {0}"
-        "config.menuLanguage"       = "Current language      : {0}"
+        "config.menuPath"           = "Current RetroBat path          : {0}"
+        "config.menuUiLanguage"     = "Current interface language     : {0}"
+        "config.menuRomPriority"    = "Current ROM priority           : {0}"
         "config.opt1"               = " 1) Change the RetroBat path"
-        "config.opt2"               = " 2) Change the language"
-        "config.opt3"               = " 3) Change both"
+        "config.opt2"               = " 2) Change the interface language"
+        "config.opt3"               = " 3) Change the ROM priority (Spanish/English)"
+        "config.opt4"               = " 4) Change all of the above"
         "config.opt0"               = " 0) Back to the main menu"
+
+        "priority.askTitle"         = "Which ROMs do you want the program to prefer when two versions of the same game compete?"
+        "priority.opt1"             = " 1) Spanish (prioritizes Spain > Europe > USA > Japan)"
+        "priority.opt2"             = " 2) English (prioritizes USA > Europe > Spain > Japan)"
+        "priority.prompt"           = "Option"
+        "priority.labelEs"          = "Spanish"
+        "priority.labelEn"          = "English"
 
         # ---------- Language (first run) ----------
         "lang.prompt.title"         = "Selecciona idioma / Select language:"

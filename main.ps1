@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# Beta CleanROMs v2.6
+# CleanROMs v2.7
 #
 # Main.ps1
 # ============================================================
@@ -72,6 +72,7 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Global:AutoConfirm = [bool]$Yes
 
 Initialize-Language -Root $Root
+Initialize-RomPriorityLanguage -Root $Root
 Initialize-RetroBatRoot -Root $Root
 
 if($PreviewOnly)

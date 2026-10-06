@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# Beta CleanROMs v2.6
+# CleanROMs v2.7
 #
 # Menu.ps1
 #
@@ -55,15 +55,19 @@ function Show-ConfigMenu {
         [string]$Root
     )
 
+    $priorityLabel = if($Global:Settings.RomPriorityLanguage -eq "en") { T "priority.labelEn" } else { T "priority.labelEs" }
+
     Write-Host ""
     Write-Host (T "config.menuTitle")
     Write-Host ""
     Write-Host (T "config.menuPath" $Global:RetroBatRoot)
-    Write-Host (T "config.menuLanguage" $Global:Settings.Language)
+    Write-Host (T "config.menuUiLanguage" $Global:Settings.Language)
+    Write-Host (T "config.menuRomPriority" $priorityLabel)
     Write-Host ""
     Write-Host (T "config.opt1")
     Write-Host (T "config.opt2")
     Write-Host (T "config.opt3")
+    Write-Host (T "config.opt4")
     Write-Host (T "config.opt0")
     Write-Host ""
 
@@ -71,15 +75,17 @@ function Show-ConfigMenu {
     {
         $option = Read-Host (T "menu.prompt")
     }
-    until($option -match '^[0123]$')
+    until($option -match '^[01234]$')
 
     switch($option)
     {
         "1" { Initialize-RetroBatRoot -Root $Root -Force }
         "2" { Initialize-Language -Root $Root -Force }
-        "3" {
+        "3" { Initialize-RomPriorityLanguage -Root $Root -Force }
+        "4" {
             Initialize-RetroBatRoot -Root $Root -Force
             Initialize-Language -Root $Root -Force
+            Initialize-RomPriorityLanguage -Root $Root -Force
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿# ============================================================
 #
-# Beta CleanROMs v2.6
+# CleanROMs v2.7
 #
 # Settings.ps1
 #
@@ -68,6 +68,7 @@ function Get-UserSettings {
     $result = [PSCustomObject]@{
         Language     = $null
         RetroBatRoot = $null
+        RomPriorityLanguage = $null
     }
 
     if(Test-Path -LiteralPath $configFile)
@@ -76,7 +77,7 @@ function Get-UserSettings {
         {
             $loaded = Get-Content -LiteralPath $configFile -Raw | ConvertFrom-Json
 
-            foreach($propName in @("Language", "RetroBatRoot"))
+            foreach($propName in @("Language", "RetroBatRoot", "RomPriorityLanguage"))
             {
                 if($loaded.PSObject.Properties.Name -contains $propName)
                 {
@@ -177,6 +178,108 @@ function Initialize-Language {
 
     $userConfig | Add-Member -NotePropertyName "Language" -NotePropertyValue $Global:Settings.Language -Force
     Save-UserSettings -Root $Root -Settings $userConfig
+
+}
+
+#--------------------------------------------------------------
+# Elegir que tabla de Config\DecisionWeights.ps1 esta activa
+#--------------------------------------------------------------
+
+function Set-ActiveDecisionWeights {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Priority
+    )
+
+    if($Priority -eq "en")
+    {
+        $Global:DecisionWeights = $Global:DecisionWeights_EN
+    }
+    else
+    {
+        $Global:DecisionWeights = $Global:DecisionWeights_ES
+    }
+
+}
+
+#--------------------------------------------------------------
+# Primer arranque: elegir prioridad de ROMs (español/inglés)
+#
+# No es lo mismo que Initialize-Language: eso elige el idioma de
+# los menús y mensajes; esto elige qué tabla de puntuación de
+# región/idioma se usa para decidir qué copia se conserva cuando
+# compiten dos ROMs (ver Config\DecisionWeights.ps1). Se pregunta
+# por separado porque alguien podría querer los menús en inglés
+# pero seguir prefiriendo quedarse con las ROMs en español, o
+# viceversa.
+#--------------------------------------------------------------
+
+function Initialize-RomPriorityLanguage {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$Root,
+
+        [switch]$Force
+    )
+
+    $userConfig = Get-UserSettings -Root $Root
+
+    if((-not $Force) -and (-not [string]::IsNullOrWhiteSpace($userConfig.RomPriorityLanguage)))
+    {
+        $Global:Settings.RomPriorityLanguage = $userConfig.RomPriorityLanguage
+        Set-ActiveDecisionWeights -Priority $Global:Settings.RomPriorityLanguage
+        return
+    }
+
+    #
+    # Primer arranque (o reconfiguración forzada desde el menú):
+    # no hay prioridad guardada todavía.
+    #
+
+    if($Global:AutoConfirm)
+    {
+        #
+        # Modo no interactivo (-Yes): se usa español por defecto,
+        # sin preguntar, igual que Initialize-Language.
+        #
+
+        $Global:Settings.RomPriorityLanguage = "es"
+
+        $userConfig | Add-Member -NotePropertyName "RomPriorityLanguage" -NotePropertyValue "es" -Force
+        Save-UserSettings -Root $Root -Settings $userConfig
+
+        Set-ActiveDecisionWeights -Priority "es"
+
+        return
+    }
+
+    #
+    # A diferencia del selector de idioma de interfaz, aquí ya
+    # sabemos qué idioma prefiere (Initialize-Language se llama
+    # antes que esta función), así que el mensaje se muestra ya
+    # traducido con T, no en los dos idiomas a la vez.
+    #
+
+    Write-Host ""
+    Write-Host (T "priority.askTitle") -ForegroundColor Cyan
+    Write-Host (T "priority.opt1")
+    Write-Host (T "priority.opt2")
+    Write-Host ""
+
+    do
+    {
+        $typed = Read-Host (T "priority.prompt")
+    }
+    until($typed -match '^[12]$')
+
+    $Global:Settings.RomPriorityLanguage = if($typed -eq "2") { "en" } else { "es" }
+
+    $userConfig | Add-Member -NotePropertyName "RomPriorityLanguage" -NotePropertyValue $Global:Settings.RomPriorityLanguage -Force
+    Save-UserSettings -Root $Root -Settings $userConfig
+
+    Set-ActiveDecisionWeights -Priority $Global:Settings.RomPriorityLanguage
 
 }
 
@@ -282,7 +385,24 @@ $Global:DuplicatesFolder = "_duplicates"
 
 $Global:Settings = @{
 
+    #
+    # Idioma de la INTERFAZ (menús, mensajes en pantalla). No
+    # confundir con RomPriorityLanguage de abajo, que es un ajuste
+    # totalmente distinto.
+    #
+
     Language         = "es"
+
+    #
+    # Idioma de PRIORIDAD DE ROMS: cuál de las dos tablas de
+    # Config\DecisionWeights.ps1 se usa para puntuar región e
+    # idioma ($Global:DecisionWeights_ES o _EN). No afecta a los
+    # menús ni a los mensajes — solo a qué copia gana cuando dos
+    # ROMs compiten por región/idioma. Ver Set-ActiveDecisionWeights
+    # más abajo, e Initialize-RomPriorityLanguage.
+    #
+
+    RomPriorityLanguage = "es"
 
     PreviewOnly      = $false
 
