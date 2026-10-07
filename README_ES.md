@@ -1,5 +1,4 @@
-🇬🇧 [English](README.md) | 🇪🇸 [Español](README_es.md)
-
+🇬🇧 [English](README.md) | 🇪🇸 [Español](README_ES.md)
 
 CleanROMs v2.7
 ==============
