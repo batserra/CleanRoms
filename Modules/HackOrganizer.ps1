@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# CleanROMs v2.7
+# CleanROMs
 #
 # HackOrganizer.ps1
 #
@@ -23,22 +23,22 @@
 # como parte de "Limpiar ROMs duplicadas" y de "TODO", con su
 # propia previsualización y confirmación S/N cada vez.
 # ============================================================
- 
+
 function Get-LooseHackRoms {
- 
+
     param(
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
         [array]$Roms
     )
- 
+
     #
     # Cualquier ROM de las categorías que Grouper.ps1 excluye de la
     # comparación, y que todavía esté suelta en la carpeta
     # principal del sistema (no dentro de una carpeta que ya
     # contenga "Hack" en el nombre).
     #
- 
+
     return @(
         $Roms | Where-Object {
             (
@@ -56,11 +56,11 @@ function Get-LooseHackRoms {
             ((Split-Path $_.FullPath -Parent) -notmatch "Hack")
         }
     )
- 
+
 }
- 
+
 function Group-RomsByHash {
- 
+
     param(
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
@@ -75,7 +75,7 @@ function Group-RomsByHash {
 
         [string]$SystemName = $null
     )
- 
+
     #
     # A diferencia de Group-Roms (que agrupa por título normalizado),
     # esto agrupa por contenido real (hash). Los hacks de fans
@@ -83,17 +83,63 @@ function Group-RomsByHash {
     # así que el título no sirve para encontrar sus duplicados —
     # pero el hash demuestra sin duda que es el mismo archivo.
     #
- 
+
     if($null -eq $Roms -or $Roms.Count -eq 0)
     {
         return @()
     }
- 
+
     #
     # Get-RomHashesParallel ya decide sola si compensa calcular en
     # paralelo o en serie según cuántos archivos haya, así que no
     # hace falta ninguna rama aparte aquí.
     #
+
+    #
+    # Dos archivos solo pueden ser identicos si pesan EXACTAMENTE lo
+    # mismo. Los que tienen un tamano que no comparte ningun otro no
+    # pueden tener duplicado: ni se leen ni se hashean. En una carpeta
+    # grande de hacks casi todos pesan distinto, asi que esto evita
+    # leer la mayoria de los archivos.
+    #
+
+    $bySize = @{}
+
+    foreach($rom in $Roms)
+    {
+        try
+        {
+            $length = (New-Object System.IO.FileInfo $rom.FullPath).Length
+        }
+        catch
+        {
+            continue
+        }
+
+        if(-not $bySize.ContainsKey($length))
+        {
+            $bySize[$length] = @()
+        }
+
+        $bySize[$length] += $rom
+    }
+
+    $candidates = @()
+
+    foreach($sizeKey in $bySize.Keys)
+    {
+        if($bySize[$sizeKey].Count -gt 1)
+        {
+            $candidates += $bySize[$sizeKey]
+        }
+    }
+
+    if($candidates.Count -lt 2)
+    {
+        return @()
+    }
+
+    $Roms = @($candidates)
 
     $hashLookup = Get-RomHashesParallel -Paths @($Roms.FullPath)
 
@@ -109,11 +155,11 @@ function Group-RomsByHash {
             }
         }
     }
- 
+
     $groups = $withHash |
         Group-Object Hash |
         Where-Object { $_.Count -gt 1 }
- 
+
     $result = foreach($group in $groups)
     {
         #
@@ -122,11 +168,11 @@ function Group-RomsByHash {
         # caso de empate el primero por orden alfabético — mismo
         # criterio que ya se usa como desempate en DecisionEngine.
         #
- 
+
         $sorted = $group.Group.Rom | Sort-Object `
             @{Expression = { $_.Title.Length }}, `
             @{Expression = { $_.Title }}
- 
+
         [PSCustomObject]@{
             Hash   = $group.Name
             System = $SystemName
@@ -134,13 +180,40 @@ function Group-RomsByHash {
             Remove = @($sorted | Select-Object -Skip 1)
         }
     }
- 
+
     return @($result)
- 
+
 }
- 
+
+#--------------------------------------------------------------
+# Carpeta del sistema (de la lista $SystemFolders) que contiene un
+# archivo. Si hay varias anidadas, la mas profunda.
+#--------------------------------------------------------------
+
+function Get-OwningSystemFolder {
+
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string[]]$SystemFolders
+    )
+
+    $best = ""
+
+    foreach($folder in $SystemFolders)
+    {
+        $prefix = $folder.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+
+        if($Path.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase) -and $folder.Length -gt $best.Length)
+        {
+            $best = $folder
+        }
+    }
+
+    return $best
+}
+
 function Invoke-HackOrganizer {
- 
+
     param(
         [Parameter(Mandatory)]
         [string]$Root,
@@ -148,37 +221,37 @@ function Invoke-HackOrganizer {
         [Parameter(Mandatory)]
         [string[]]$SystemFolders
     )
- 
+
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host (T "hackorg.header")
     Write-Host "==========================================" -ForegroundColor Cyan
- 
+
     $allLoose = @()
- 
+
     foreach($folder in $SystemFolders)
     {
         if(!(Test-Path -LiteralPath $folder))
         {
             continue
         }
- 
+
         $systemName = Split-Path $folder -Leaf
- 
+
         $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
- 
+
         $loose = @(Get-LooseHackRoms -Roms $roms)
- 
+
         if($loose.Count -gt 0)
         {
             Write-Host (T "hackorg.foundInSystem" @($systemName, $loose.Count))
         }
- 
+
         $allLoose += $loose
     }
- 
+
     Write-Host ""
- 
+
     if($allLoose.Count -eq 0)
     {
         Write-Host (T "hackorg.noneFound") -ForegroundColor Green
@@ -189,28 +262,28 @@ function Invoke-HackOrganizer {
         Write-Host (T "hackorg.previewTitle")
         Write-Host "==========================================" -ForegroundColor Cyan
         Write-Host ""
- 
+
         foreach($rom in $allLoose)
         {
             $systemFolder = Split-Path $rom.FullPath -Parent
             $target = Join-Path $systemFolder "# Hacks y Otros #"
- 
+
             Write-Host "[MOVE] $($rom.FullPath)"
             Write-Host (T "hackorg.destination" $target)
             Write-Host ""
         }
- 
+
         Write-Host "==========================================" -ForegroundColor Cyan
         Write-Host (T "hackorg.totalFound" $allLoose.Count)
         Write-Host "==========================================" -ForegroundColor Cyan
         Write-Host ""
- 
+
         if($Global:Settings.PreviewOnly)
         {
             Write-Host (T "plan.previewOnlyNotice") -ForegroundColor DarkYellow
             Write-Host ""
         }
- 
+
         if(-not (Confirm-YesNo "hackorg.confirm"))
         {
             Write-Host ""
@@ -222,48 +295,49 @@ function Invoke-HackOrganizer {
         else
         {
             Write-Host ""
- 
+
             $movedCount = 0
             $skippedCount = 0
             $previewedCount = 0
             $planEntries = @()
- 
+            $gamelistMoves = @()
+
             foreach($rom in $allLoose)
             {
                 $systemFolder = Split-Path $rom.FullPath -Parent
                 $target = Join-Path $systemFolder "# Hacks y Otros #"
- 
+
                 if(!(Test-Path -LiteralPath $rom.FullPath))
                 {
                     $skippedCount++
                     continue
                 }
- 
+
                 $destination = Join-Path $target (Split-Path $rom.FullPath -Leaf)
- 
+
                 if(Test-Path -LiteralPath $destination)
                 {
                     Write-Host (T "media.alreadyBackedUp" $destination) -ForegroundColor Yellow
                     $skippedCount++
                     continue
                 }
- 
+
                 if($Global:Settings.PreviewOnly)
                 {
                     Write-Host (T "exec.previewMove" $rom.FullPath) -ForegroundColor DarkYellow
                     $previewedCount++
                     continue
                 }
- 
+
                 if(!(Test-Path -LiteralPath $target))
                 {
                     New-Item -ItemType Directory -Path $target -Force | Out-Null
                 }
- 
+
                 Move-Item -LiteralPath $rom.FullPath -Destination $destination
- 
+
                 Write-Host (T "hackorg.moved" $rom.FullPath) -ForegroundColor Yellow
- 
+
                 #
                 # Se registra como acción MOVE (misma forma que las
                 # de la limpieza normal) para que "Deshacer la
@@ -272,11 +346,11 @@ function Invoke-HackOrganizer {
                 #
 
                 $entry = New-CleanAction -Action "MOVE" -Rom $rom -Target $target -Reason (T "hackorg.reason") -System (Split-Path $systemFolder -Leaf)
- 
+
                 if($Global:Settings.MoveAssets)
                 {
                     $assets = Get-AssociatedFiles $rom
- 
+
                     foreach($asset in $assets)
                     {
                         try
@@ -288,16 +362,46 @@ function Invoke-HackOrganizer {
                         catch
                         {
                             Write-Warning (T "exec.assetMoveFailed" @($asset.FullName, $_.Exception.Message))
+                            $Global:ActionErrorCount = [int]$Global:ActionErrorCount + 1
                         }
                     }
                 }
- 
+
                 $planEntries += $entry
                 $movedCount++
+
+                $gamelistMoves += [PSCustomObject]@{
+                    SystemFolder = (Get-OwningSystemFolder -Path $rom.FullPath -SystemFolders $SystemFolders)
+                    From         = $rom.FullPath
+                    To           = $destination
+                    Entry        = $entry
+                }
             }
- 
+
+            #
+            # Mover el archivo cambia su ruta: la entrada del gamelist.xml
+            # tiene que seguirle, o RetroBat perderia los favoritos y el
+            # historial de ese juego. Cada entrada actualizada se marca en
+            # el plan para que "Deshacer" pueda devolverla a su ruta.
+            #
+
+            foreach($group in ($gamelistMoves | Where-Object { $_.SystemFolder } | Group-Object SystemFolder))
+            {
+                $changes = @($group.Group | ForEach-Object { [PSCustomObject]@{ From = $_.From; To = $_.To } })
+                $updated = @(Update-GamelistEntryPaths -SystemFolder $group.Name -Changes $changes -Root $Root)
+
+                foreach($item in $group.Group)
+                {
+                    if($updated -contains $item.From)
+                    {
+                        Add-Member -InputObject $item.Entry -NotePropertyName GamelistUpdated -NotePropertyValue $true -Force
+                        Add-Member -InputObject $item.Entry -NotePropertyName SystemFolder -NotePropertyValue $group.Name -Force
+                    }
+                }
+            }
+
             Add-CleanPlanEntries -Root $Root -NewActions $planEntries
- 
+
             Write-Host ""
             Write-Host "==========================================" -ForegroundColor Cyan
             Write-Host (T "hackorg.movedCount" $movedCount)
@@ -311,25 +415,25 @@ function Invoke-HackOrganizer {
             Write-Host "==========================================" -ForegroundColor Cyan
         }
     }
- 
+
     #
     # Segunda pasada: deduplicar por hash DENTRO de cada carpeta
     # "# Hacks y Otros #" (incluye lo recién movido y lo que ya
     # hubiera antes).
     #
- 
+
     $hacksFolders = @(
         $SystemFolders |
             ForEach-Object { Join-Path $_ "# Hacks y Otros #" } |
             Where-Object { Test-Path -LiteralPath $_ } |
             Select-Object -Unique
     )
- 
+
     Invoke-HackDeduplication -Root $Root -HacksFolders $hacksFolders
 }
- 
+
 function Invoke-HackDeduplication {
- 
+
     param(
         [Parameter(Mandatory)]
         [string]$Root,
@@ -338,82 +442,82 @@ function Invoke-HackDeduplication {
         [AllowEmptyCollection()]
         [string[]]$HacksFolders
     )
- 
+
     if($HacksFolders.Count -eq 0)
     {
         return
     }
- 
+
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host (T "hackdedup.header")
     Write-Host "==========================================" -ForegroundColor Cyan
- 
+
     $allDupeGroups = @()
- 
+
     foreach($folder in $HacksFolders)
     {
         $systemName = Split-Path (Split-Path $folder -Parent) -Leaf
 
         $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
- 
+
         $dupeGroups = @(Group-RomsByHash -Roms $roms -SystemName $systemName)
- 
+
         if($dupeGroups.Count -gt 0)
         {
             Write-Host (T "hackdedup.foundInSystem" @($systemName, $dupeGroups.Count))
         }
- 
+
         $allDupeGroups += $dupeGroups
     }
- 
+
     Write-Host ""
- 
+
     if($allDupeGroups.Count -eq 0)
     {
         Write-Host (T "hackdedup.noneFound") -ForegroundColor Green
         return
     }
- 
+
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host (T "hackorg.previewTitle")
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
- 
+
     $totalToMove = 0
- 
+
     foreach($group in $allDupeGroups)
     {
         Write-Host "[KEEP] $($group.Keep.FullPath)"
         Write-Host (T "hackdedup.hash" @($Global:Settings.HashAlgorithm, $group.Hash))
         Write-Host ""
- 
+
         foreach($rom in $group.Remove)
         {
             $target = Get-DuplicateTargetFolder -SystemName $group.System
- 
+
             Write-Host "[MOVE] $($rom.FullPath)"
             Write-Host (T "hackorg.destination" $target)
             Write-Host ""
- 
+
             $totalToMove++
         }
     }
- 
+
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host (T "hackdedup.totalFound" $totalToMove)
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
- 
+
     Write-Host (T "hackdedup.confirmNote" $Global:Settings.HashAlgorithm) -ForegroundColor Yellow
     Write-Host ""
- 
+
     if($Global:Settings.PreviewOnly)
     {
         Write-Host (T "plan.previewOnlyNotice") -ForegroundColor DarkYellow
         Write-Host ""
     }
- 
+
     if(-not (Confirm-YesNo "hackdedup.confirmMove"))
     {
         Write-Host ""
@@ -423,63 +527,63 @@ function Invoke-HackDeduplication {
         Write-Host "==========================================" -ForegroundColor Yellow
         return
     }
- 
+
     Write-Host ""
- 
+
     $movedCount = 0
     $skippedCount = 0
     $previewedCount = 0
     $planEntries = @()
- 
+
     foreach($group in $allDupeGroups)
     {
         foreach($rom in $group.Remove)
         {
             $target = Get-DuplicateTargetFolder -SystemName $group.System
- 
+
             if(!(Test-Path -LiteralPath $rom.FullPath))
             {
                 $skippedCount++
                 continue
             }
- 
+
             $destination = Join-Path $target (Split-Path $rom.FullPath -Leaf)
- 
+
             if(Test-Path -LiteralPath $destination)
             {
                 Write-Host (T "media.alreadyBackedUp" $destination) -ForegroundColor Yellow
                 $skippedCount++
                 continue
             }
- 
+
             if($Global:Settings.PreviewOnly)
             {
                 Write-Host (T "exec.previewMove" $rom.FullPath) -ForegroundColor DarkYellow
                 $previewedCount++
                 continue
             }
- 
+
             if(!(Test-Path -LiteralPath $target))
             {
                 New-Item -ItemType Directory -Path $target -Force | Out-Null
             }
- 
+
             Move-Item -LiteralPath $rom.FullPath -Destination $destination
- 
+
             Write-Host (T "exec.move" $rom.FullPath) -ForegroundColor Yellow
- 
+
             #
             # Igual que en Invoke-HackOrganizer: se registra como
             # acción MOVE para que "Deshacer la última limpieza"
             # también cubra estos duplicados exactos de hacks.
             #
 
-            $entry = New-CleanAction -Action "MOVE" -Rom $rom -Target $target -Reason (T "hackdedup.reason") -Hash $group.Hash -System $group.System
- 
+            $entry = New-CleanAction -Action "MOVE" -Rom $rom -Target $target -Reason (T "hackdedup.reason") -Hash $group.Hash -System $group.System -WinnerPath $group.Keep.FullPath
+
             if($Global:Settings.MoveAssets)
             {
                 $assets = Get-AssociatedFiles $rom
- 
+
                 foreach($asset in $assets)
                 {
                     try
@@ -491,17 +595,38 @@ function Invoke-HackDeduplication {
                     catch
                     {
                         Write-Warning (T "exec.assetMoveFailed" @($asset.FullName, $_.Exception.Message))
+                        $Global:ActionErrorCount = [int]$Global:ActionErrorCount + 1
                     }
                 }
             }
- 
+
             $planEntries += $entry
             $movedCount++
         }
     }
- 
+
     Add-CleanPlanEntries -Root $Root -NewActions $planEntries
- 
+
+    #
+    # Igual que en la limpieza normal: los datos del usuario del
+    # gamelist.xml (favorito, veces jugada...) de la copia movida
+    # pasan a la copia que se queda. Ver GamelistManager.ps1.
+    #
+
+    if($planEntries.Count -gt 0)
+    {
+        $gamelistFolders = @(
+            $HacksFolders |
+                ForEach-Object { Split-Path $_ -Parent } |
+                Select-Object -Unique
+        )
+
+        $null = Invoke-GamelistMerge `
+            -Plan ([PSCustomObject]@{ MoveActions = @($planEntries) }) `
+            -SystemFolders $gamelistFolders `
+            -Root $Root
+    }
+
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host (T "hackorg.movedCount" $movedCount)

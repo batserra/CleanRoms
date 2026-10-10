@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# CleanROMs v2.7
+# CleanROMs
 #
 # Cleaner.ps1
 #
@@ -48,7 +48,17 @@ function New-CleanAction {
         # por ruta como red de seguridad.
         #
 
-        [string]$System = $null
+        [string]$System = $null,
+
+        #
+        # Ruta completa de la ROM que SE QUEDA en el grupo (solo en
+        # acciones MOVE). Permite a Invoke-GamelistMerge
+        # (GamelistManager.ps1) pasar los datos del usuario del
+        # gamelist.xml (favorito, veces jugada...) de la ROM que se
+        # mueve a la que se conserva.
+        #
+
+        [string]$WinnerPath = ""
 
     )
 
@@ -72,6 +82,8 @@ function New-CleanAction {
         Hash = $Hash
 
         System = $System
+
+        WinnerPath = $WinnerPath
 
         TimeStamp = Get-Date
 
@@ -129,7 +141,7 @@ function Invoke-RomCleaning {
 
         if(!(Test-Path -LiteralPath $folder))
         {
-            Write-Host "  -> Carpeta no encontrada, se omite." -ForegroundColor DarkYellow
+            Write-Host (T "cleaner.folderNotFound") -ForegroundColor DarkYellow
             continue
         }
 
@@ -143,6 +155,21 @@ function Invoke-RomCleaning {
         }
 
         $roms = @(Update-NormalizedTitles $roms)
+
+        #
+        # Juegos de varios ficheros (.cue + .bin, discos + .m3u...):
+        # cada juego pasa a ser UNA unidad antes de buscar duplicados.
+        # Ver RomSets.ps1.
+        #
+
+        $roms = @(Merge-RomSets $roms)
+
+        $multiFileCount = @($roms | Where-Object { @(Get-RomSetMembers $_).Count -gt 0 }).Count
+
+        if($multiFileCount -gt 0)
+        {
+            Write-Host (T "multifile.detected" $multiFileCount) -ForegroundColor DarkCyan
+        }
 
         $sysGroups = @(Group-Roms -Roms $roms -SystemName $systemName)
 
@@ -246,6 +273,14 @@ function Invoke-RomCleaning {
     Invoke-CleanExecute $plan
 
     #--------------------------------------------------------------
+    # Conservar los datos del usuario del gamelist.xml (favorito,
+    # veces jugada, nota...) de las ROMs movidas en la ROM que se
+    # queda. Ver GamelistManager.ps1.
+    #--------------------------------------------------------------
+
+    $null = Invoke-GamelistMerge -Plan $plan -SystemFolders $SystemFolders -Root $Root
+
+    #--------------------------------------------------------------
     # Reexportar el plan tras ejecutar
     #
     # El primer Export-CleanPlan (más arriba) se hace ANTES de
@@ -285,13 +320,37 @@ function Invoke-CleanPreview {
     # ahorra de toda la limpieza.
     #
 
-    $allPaths = @(
-        $Groups | ForEach-Object { $_.Roms } | ForEach-Object { $_.FullPath }
-    )
+    $allPaths = @()
+
+    foreach($g in $Groups)
+    {
+        foreach($r in $g.Roms)
+        {
+            $allPaths += $r.FullPath
+
+            # Tambien los demas ficheros de cada juego (pistas, discos...)
+            foreach($m in @(Get-RomSetMembers $r))
+            {
+                $allPaths += $m.FullPath
+            }
+        }
+    }
 
     $hashLookup = Get-RomHashesParallel -Paths $allPaths
 
     $actions = @()
+
+    #
+    # Decisiones manuales persistentes (Config\Overrides.json).
+    # Se leen una sola vez por limpieza.
+    #
+
+    $overrides = Get-Overrides
+    $ignoredGroups = 0
+
+    # Destinos ya reservados por este plan (para no pisar dos
+    # ficheros del mismo nombre, p.ej. "Track 01.bin" de dos juegos)
+    $plannedMoves = @{}
 
     foreach($group in $Groups)
     {
@@ -309,7 +368,18 @@ function Invoke-CleanPreview {
         # Decision Engine
         #
 
-        $decision = Decide-RomGroup $group.Roms
+        $override = Get-GroupOverride -Group $group -Overrides $overrides
+
+        if($override.Ignored)
+        {
+            Write-Host (T "overrides.groupIgnored" @($group.Name, $override.IgnoreSource)) -ForegroundColor DarkCyan
+            $ignoredGroups++
+            continue
+        }
+
+        $Global:OverrideContextSystem = [string]$group.System
+
+        $decision = Decide-RomGroup $group.Roms -PreferredPath $override.PreferredPath
 
         if($null -eq $decision)
         {
@@ -327,6 +397,17 @@ function Invoke-CleanPreview {
             -Hash $hashLookup[$decision.Keep.FullPath] `
             -System $group.System
 
+        # Los demas ficheros del juego que se conserva (pistas, discos...)
+        foreach($member in @(Get-RomUnitMembers $decision.Keep))
+        {
+            $actions += New-CleanAction `
+                -Action "KEEP" `
+                -Rom $member `
+                -Reason (T "multifile.memberKeep" (Split-Path $decision.Keep.FullPath -Leaf)) `
+                -Hash $hashLookup[$member.FullPath] `
+                -System $group.System
+        }
+
         #
         # MOVE
         #
@@ -335,14 +416,71 @@ function Invoke-CleanPreview {
         {
             $target = Get-DuplicateTargetFolder -SystemName $group.System
 
+            #
+            # Un juego de varios ficheros se mueve ENTERO o no se mueve:
+            # si alguno de sus ficheros chocaria con uno que ya hay en
+            # el destino (o con otro del mismo plan), se deja todo
+            # donde esta en vez de partir el juego por la mitad.
+            #
+
+            $unitMembers = @(Get-RomUnitMembers $item.Rom)
+
+            if($unitMembers.Count -gt 0)
+            {
+                $collision = $null
+
+                foreach($file in (@($item.Rom) + $unitMembers))
+                {
+                    $leaf = Split-Path $file.FullPath -Leaf
+
+                    if((Test-Path -LiteralPath (Join-Path $target $leaf)) -or
+                       $plannedMoves.ContainsKey(($target + "|" + $leaf).ToLowerInvariant()))
+                    {
+                        $collision = $leaf
+                        break
+                    }
+                }
+
+                if($null -ne $collision)
+                {
+                    Write-Warning (T "multifile.collision" @((Split-Path $item.Rom.FullPath -Leaf), $collision))
+                    continue
+                }
+            }
+
             $actions += New-CleanAction `
                 -Action "MOVE" `
                 -Rom $item.Rom `
                 -Target $target `
                 -Reason ($item.Reason -join "`n") `
                 -Hash $hashLookup[$item.Rom.FullPath] `
-                -System $group.System
+                -System $group.System `
+                -WinnerPath $decision.Keep.FullPath
+
+            $plannedMoves[($target + "|" + (Split-Path $item.Rom.FullPath -Leaf)).ToLowerInvariant()] = $true
+
+            foreach($member in $unitMembers)
+            {
+                $actions += New-CleanAction `
+                    -Action "MOVE" `
+                    -Rom $member `
+                    -Target $target `
+                    -Reason (T "multifile.memberMove" (Split-Path $item.Rom.FullPath -Leaf)) `
+                    -Hash $hashLookup[$member.FullPath] `
+                    -System $group.System `
+                    -WinnerPath $decision.Keep.FullPath
+
+                $plannedMoves[($target + "|" + (Split-Path $member.FullPath -Leaf)).ToLowerInvariant()] = $true
+            }
         }
+    }
+
+    $Global:OverrideContextSystem = ""
+
+    if($ignoredGroups -gt 0)
+    {
+        Write-Host ""
+        Write-Host (T "overrides.ignoredCount" $ignoredGroups) -ForegroundColor DarkCyan
     }
 
     return $actions
@@ -526,7 +664,7 @@ function Build-CleanPlan {
     $plan | Add-Member NoteProperty TotalRename $plan.RenameActions.Count
 	$plan | Add-Member NoteProperty TotalActions $Actions.Count
 	$plan | Add-Member NoteProperty BuildDate (Get-Date)
-	$plan | Add-Member NoteProperty Version "CleanROMs v2.7"
+	$plan | Add-Member NoteProperty Version "CleanROMs v$($Global:AppVersion)"
 
     return $plan
 
@@ -555,7 +693,7 @@ function Validate-CleanPlan {
 
     if($duplicates.Count -gt 0)
     {
-        throw "El plan contiene acciones KEEP duplicadas."
+        throw (T "plan.duplicateKeep")
     }
 
     #
@@ -566,7 +704,7 @@ function Validate-CleanPlan {
     {
         if([string]::IsNullOrWhiteSpace($action.Target))
         {
-            throw "Acción MOVE sin destino: $($action.Source)"
+            throw (T "plan.moveNoTarget" $action.Source)
         }
     }
 

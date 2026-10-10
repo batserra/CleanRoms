@@ -1,5 +1,3 @@
-🇬🇧 [English](README.md) | 🇪🇸 [Español](README_ES.md)
-
 CleanROMs v2.7
 ==============
 
@@ -86,11 +84,16 @@ El menú principal
     2) Deshacer la última limpieza
     3) Limpiar imágenes/vídeos/manuales huérfanos
     4) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas
+    5) Configuración (ruta de RetroBat / idioma)
+    6) Purgar _duplicates (BORRAR copias antiguas)
+    7) Salir
 
 Cada acción muestra una previsualización completa y pide confirmación
-antes de mover o borrar nada. Nunca se borra nada de forma permanente --
-los archivos se mueven a una carpeta de respaldo _duplicates\, y la
-opción 2 puede devolverlos a su sitio.
+antes de mover o borrar nada. Las opciones 1-4 nunca borran nada -- los
+archivos se mueven a una carpeta de respaldo _duplicates\, y la opción 2
+puede devolverlos a su sitio. Lo único que el programa borra de verdad es
+la opción 6 (ver "Purgar _duplicates" más abajo), y solo después de
+enseñarte la lista y preguntarte.
 
 El ajuste PreviewOnly (Config\Settings.ps1) te permite ejecutar todo en
 modo simulación, útil la primera vez que lo pruebas en una colección
@@ -103,10 +106,17 @@ Todo vive dentro de Config\, en texto plano, editable con cualquier
 editor de texto:
 
 - UserSettings.json    Tu ruta de RetroBat y el idioma elegido.
-- Settings.ps1         Sistemas y extensiones reconocidos, carpetas
-                        ignoradas, sufijos de medios reconocidos, y
-                        ajustes de comportamiento (PreviewOnly,
-                        MoveAssets, RemoveDuplicates...).
+- Systems.json         Sistemas soportados ("Nombre": "carpeta"), por
+                        categorías.
+- Extensions.json      RomExtensions (qué cuenta como ROM) e
+                        IgnoredFolders (carpetas que nunca se recorren).
+- *.custom.json        Opcionales: Systems.custom.json /
+                        Extensions.custom.json para añadir lo tuyo
+                        encima, a salvo de las actualizaciones.
+- Settings.ps1         Sufijos de medios reconocidos y ajustes de
+                        comportamiento (PreviewOnly, MoveAssets,
+                        RemoveDuplicates, HashCache,
+                        PurgeDuplicatesAfterDays...).
 - DecisionWeights.ps1   Las tablas de puntuación completas (región,
                         idioma, calidad de dump, versión, revisión) --
                         libremente ajustables.
@@ -149,8 +159,8 @@ Novedades de la 2.6
   se mueven a la carpeta de duplicados del sistema correcto, en vez de
   crear a veces una carpeta suelta "_duplicates\# Hacks y Otros #\".
 - La pregunta de confirmación al mover hacks duplicados ahora explica
-  que son archivos idénticos byte a byte y que este paso concreto no se
-  puede deshacer con la opción "Deshacer la última limpieza" del menú.
+  que son archivos idénticos byte a byte. (Antes añadía que este paso no
+  se podía deshacer; estaba desfasado: sí se puede, ver más abajo.)
 - Añadido "Run CleanROMs.bat", un lanzador que desbloquea la carpeta y
   arranca el programa para que quien lo use por primera vez no se
   encuentre con el error de "no está firmado digitalmente" de
@@ -163,7 +173,7 @@ Novedades de la 2.6
   de mando) que se hubieran movido junto con una ROM, no solo la ROM.
 - Nuevos parámetros de línea de comandos en main.ps1 para ejecuciones
   programadas/desatendidas (Programador de tareas de Windows y
-  similares): -Action Clean|Orphans|All|Undo, -System <carpeta>, -Yes
+  similares): -Action Clean|Orphans|All|Undo|Purge, -System <carpeta>, -Yes
   (confirma automáticamente cada pregunta), -PreviewOnly. Ver "Uso por
   línea de comandos / tareas programadas" más abajo. Ejecutar main.ps1
   sin parámetros funciona exactamente igual que siempre.
@@ -205,17 +215,247 @@ Consulta el manual de usuario completo para el detalle de cada función y
 las reglas exactas de puntuación/desempate.
 
 
+Deshacer: hacks y movimientos encadenados
+------------------------------------------
+- Mover los hacks sueltos a "# Hacks y Otros #" y mover sus duplicados
+  exactos a _duplicates queda registrado en el plan y se puede deshacer
+  con "Deshacer la última limpieza", como cualquier otro movimiento.
+- "Deshacer" ahora recorre los movimientos del último al primero. Antes,
+  un hack movido dos veces en la misma ejecución (organizado y luego
+  enviado a _duplicates por ser copia exacta) solo volvía hasta
+  "# Hacks y Otros #" en vez de a su carpeta original.
+- "Deshacer la última limpieza" ahora también devuelve las imágenes,
+  vídeos y manuales huérfanos. Antes, el paso de medios huérfanos los
+  movía sin anotarlos en el plan, así que tras "Limpiar TODAS" + "Deshacer"
+  volvían las ROMs pero sus imágenes y vídeos se quedaban en _duplicates.
+  Ahora cada medio movido es un movimiento más del plan (subcarpetas
+  incluidas), y si uno no se puede mover se avisa sin parar el resto.
+- Si un archivo concreto no se puede restaurar (bloqueado por otro
+  programa, sin permisos...), "Deshacer" avisa, lo cuenta ("Con error:
+  N") y sigue con el resto. En modo desatendido (-Yes) el código de
+  salida será entonces 2.
+
+
+Juegos de varios ficheros (.cue/.bin, .gdi, varios discos, .m3u)
+-----------------------------------------------------------------
+Los juegos de disco (PlayStation, Saturn, Dreamcast, Sega CD, PC Engine
+CD...) se componen de varios ficheros. Antes cada fichero se trataba como
+una ROM distinta, y eso rompía juegos: un .cue y su .bin parecían copias
+uno del otro y se movía uno de los dos; los discos de un juego y su .m3u
+parecían duplicados entre sí. Ahora cada juego es una unidad:
+
+- Un .cue, .gdi o .m3u arrastra los ficheros a los que apunta (las pistas
+  .bin/.raw; los discos de un .m3u y sus pistas). Dejan de tratarse como
+  ROMs sueltas.
+- Los discos de un mismo juego sin .m3u ("(Disc 1)", "(Disc 2)",
+  "(Disk 1)", "(CD 1)", "(Disc 1 of 2)") forman un conjunto que representa
+  el disco de número más bajo.
+- Un juego se conserva o se mueve ENTERO, nunca a medias: no te quedas con
+  un .cue sin su .bin. Un juego USA y uno Europe se comparan como
+  conjuntos.
+- Si algún fichero del juego chocara con otro que ya está en _duplicates
+  (o con otro juego del mismo plan), ese juego se deja donde está y se
+  muestra un aviso.
+- Cada fichero es un movimiento propio del plan, así que "Deshacer" lo
+  devuelve a su carpeta original exacta.
+- Un fichero referenciado por más de un .cue/.m3u (una pista compartida)
+  nunca se mueve, para que la copia que conservas siga funcionando.
+- Límites conocidos: no se interpretan los descriptores .ccd/.mds; el
+  organizador de hacks sigue trabajando fichero a fichero.
+
+
+Decisiones manuales que se recuerdan (Config\Overrides.json)
+-------------------------------------------------------------
+Si no estás de acuerdo con lo que decide la puntuación para un juego
+concreto, dilo una vez y se respeta en todas las limpiezas, también en
+las programadas (-Yes). Crea Config\Overrides.json (mira
+Config\Overrides.example.json):
+
+    {
+      "Prefer": [ { "System": "snes", "File": "Super Mario World (Europe).sfc" } ],
+      "Ignore": [ { "System": "snes", "Title": "Super Mario World" },
+                  { "System": "nes",  "File": "Zelda II (USA).nes" } ]
+    }
+
+- Prefer: esa ROM gana siempre en su grupo de duplicados; las demás copias
+  se mueven como de costumbre.
+- Ignore: el grupo no se toca en absoluto. Se identifica por "Title" (el
+  nombre que se imprime tras "Grupo:" al limpiar, o el título normal del
+  juego) o por "File" (cualquier copia del grupo con ese nombre de
+  archivo).
+- "System" es el nombre de la carpeta del sistema (snes, nes...). Si se
+  omite, o es "*", vale para todos. No distingue mayúsculas.
+- Cuando el programa te pregunta cuál de dos ROMs empatadas conservar,
+  ahora ofrece recordar tu respuesta: se guarda aquí como un "Prefer".
+- Si el archivo no existe, no cambia nada. Si no se puede leer, avisa y
+  se ignora (el programa nunca sobrescribe un archivo que no puede leer).
+
+
+gamelist.xml de RetroBat (favoritos, veces jugada...)
+-----------------------------------------------------
+Cuando se mueve una ROM duplicada, sus datos de usuario del gamelist.xml
+del sistema pasan a la ROM que se queda, para no perder favoritos ni
+historial de juego:
+
+- favorite: se conserva si alguna de las copias era favorita.
+- playcount, gametime: el mayor de los dos (NO se suman, así que
+  deshacer y limpiar de nuevo nunca los infla).
+- lastplayed: la fecha más reciente. rating: la nota más alta.
+- name, desc, developer, publisher, genre, players, releasedate...: solo
+  se copian si la ROM que se queda no los tiene.
+- Las rutas de imagen/vídeo/manual nunca se copian (pertenecen al
+  archivo movido). Nunca se borra ninguna entrada, así que "Deshacer"
+  sigue funcionando igual.
+- Si la ROM que se queda no tiene entrada, se crea una nueva.
+- También vale para los duplicados exactos de "# Hacks y Otros #".
+- Cuando el organizador de hacks mueve hacks sueltos a "# Hacks y Otros #",
+  la entrada del gamelist.xml de cada hack sigue al archivo: se actualiza
+  su <path> (con copia de seguridad previa), así que RetroBat no pierde sus
+  favoritos ni su historial de juego. "Deshacer la última limpieza" devuelve
+  la ruta a su sitio. Los hacks sin entrada se mueven igual y el
+  gamelist.xml no se toca.
+- Antes de guardar se hace una copia del gamelist.xml en
+  Resultado\GamelistBackups\ (las últimas UndoHistoryLimit por sistema).
+
+Con PreviewOnly solo informa de lo que haría. Para desactivarlo, pon
+MergeGamelistMetadata = $false en Config\Settings.ps1 (desactiva cualquier
+cambio en el gamelist.xml: la fusión y las actualizaciones de ruta).
+
+
+Caché de hashes
+----------------
+Calcular el hash de miles de ROMs es lo que más tarda de una limpieza, y
+cada ejecución volvía a leer y hashear los mismos archivos que no habían
+cambiado. Ahora el programa guarda en Resultado\HashCache.tsv el hash de
+cada archivo junto con su tamaño y su fecha de modificación en el momento
+de calcularlo. Un hash guardado solo se reutiliza mientras AMBOS sigan
+siendo exactamente los mismos; si cambia alguno, el archivo se hashea de
+nuevo.
+
+- Las siguientes limpiezas se saltan todo archivo que no haya cambiado, y
+  en pantalla se indica cuántos hashes se han reutilizado.
+- Si cambias HashAlgorithm (MD5, SHA256...), la caché se descarta.
+- Es solo un acelerador: si falta, está dañada o no se puede escribir,
+  todo funciona igual, solo que más despacio. Borra
+  Resultado\HashCache.tsv para empezar de cero, o pon HashCache = $false
+  en Config\Settings.ps1 para desactivarla. (La única forma de que se
+  equivocara es un archivo cuyo contenido cambie sin cambiar de tamaño ni
+  de fecha, algo que prácticamente no ocurre.)
+- La deduplicación de "# Hacks y Otros #" ahora se salta los archivos cuyo
+  tamaño es único en la carpeta: dos archivos solo pueden ser idénticos si
+  pesan exactamente lo mismo, así que la mayoría ni siquiera se leen.
+
+
+Purgar _duplicates (opción 6 del menú, -Action Purge)
+------------------------------------------------------
+_duplicates solo crece. La opción 6 borra las copias que llevan allí N
+días o más (Config\Settings.ps1: PurgeDuplicatesAfterDays, 90 por
+defecto; el menú pregunta el número y con Intro se queda el de por
+defecto). Es lo ÚNICO que el programa borra de verdad, así que es muy
+cuidadosa:
+
+- La antigüedad cuenta desde que el archivo se MOVIÓ a _duplicates (se lee
+  de los planes guardados en Resultado\), no desde la fecha del propio
+  archivo, que es la de la ROM original. Si un archivo se movió varias
+  veces, cuenta el último movimiento. Los archivos asociados (partidas
+  guardadas...) y los medios de subcarpetas cuentan con la fecha de su
+  movimiento.
+- Los archivos sin fecha de movimiento conocida (por ejemplo de planes que
+  ya salieron del historial) nunca se borran de golpe: su cuenta empieza
+  la primera vez que la purga los ve (Resultado\DuplicatesSeen.tsv) y solo
+  son candidatos N días después. Si uno de esos archivos cambia, su cuenta
+  vuelve a empezar.
+- Siempre enseña lo que borraría (por sistema, los archivos más antiguos y
+  el tamaño total) y pide confirmación -- con -Yes no pregunta. Con
+  PreviewOnly solo simula.
+- Solo toca archivos dentro de _duplicates, elimina las carpetas que
+  queden vacías y anota lo borrado en Resultado\PurgeLog_<fecha>.txt.
+- Lo purgado ya no se puede restaurar: "Deshacer" se salta lo que ya no
+  está y restaura el resto. Un archivo que no se pueda borrar se avisa sin
+  parar a los demás (código de salida 2 en modo desatendido).
+
+
+Sistemas y extensiones en JSON
+------------------------------
+Los sistemas que conoce el programa, las extensiones que trata como ROMs y
+las carpetas que nunca recorre eran antes listas dentro de
+Config\Settings.ps1, mezcladas con código. Ahora viven en Config\Systems.json
+y Config\Extensions.json, que se pueden editar sin miedo con cualquier editor
+de texto. Para añadir lo tuyo SIN tocar esos archivos (así una actualización
+nunca te lo pisa), crea los opcionales Config\Systems.custom.json y/o
+Config\Extensions.custom.json, con el mismo formato:
+
+    Systems.custom.json:     { "Mios": { "Mi sistema": "misistema" } }
+    Extensions.custom.json:  { "RomExtensions": [".xyz"], "IgnoredFolders": ["mis_cosas"] }
+
+- En los sistemas, si repites un nombre manda la carpeta del archivo custom;
+  en extensiones y carpetas ignoradas, las listas se suman.
+- Las extensiones se normalizan (".SFC" y "sfc" pasan a ser ".sfc").
+- Una entrada concreta no válida se avisa con un mensaje que nombra el
+  archivo y se ignora. Si un archivo no se puede leer (JSON roto) o no define
+  ningún sistema ni ninguna extensión, el programa se detiene con un mensaje
+  que nombra el archivo y el error.
+
+
+Número de versión y publicación
+--------------------------------
+El número de versión vive en UN solo archivo, VERSION (antes se repetía en la
+cabecera de cada archivo, el banner del menú, el log y los planes). Para
+publicar una versión:
+
+    (1) pon el número en VERSION y haz commit
+    (2) git tag v2.8
+    (3) git push origin v2.8
+
+.github\workflows\release.yml comprueba entonces que la etiqueta coincide con
+VERSION, ejecuta las comprobaciones y los tests, genera CleanRoms-v2.8.zip
+(y su .sha256) y publica una Release en GitHub con ambos adjuntos. También
+puedes generar el ZIP tú mismo con:  pwsh -File Tools\Build-Release.ps1
+
+- Todo el ZIP va dentro de UNA carpeta con el nombre de la versión, así que
+  descomprimirlo encima de una instalación anterior no mezcla archivos
+  viejos con nuevos.
+- No incluye nada personal: UserSettings.json, Overrides.json, tus
+  *.custom.json, Logs, Resultado y crash_log.txt nunca van en el ZIP, así
+  que una versión nueva no puede pisar tus ajustes ni tus decisiones.
+- Todos los mensajes en pantalla (barras de progreso y mensaje de error
+  inesperado incluidos) salen ahora de Strings.ps1 en español e inglés; una
+  prueba comprueba que cada mensaje que usa el código existe en los dos
+  idiomas.
+
+
+Tests e integración continua
+-----------------------------
+- Tests\Run-AllTests.ps1 (o Run-AllTests.bat) ejecuta toda la batería de
+  tests. Termina con código 1 si algún test falla o se interrumpe por un
+  error.
+- Tests\Check-Project.ps1 comprueba la sintaxis de todos los .ps1, que
+  cada archivo cargado con "$Root\..." existe con las mayúsculas y
+  minúsculas exactas (importa en Linux) y que los .json son válidos.
+- Tests\Smoke-Unattended.ps1 ejecuta el programa real en modo desatendido
+  (-Action ... -Yes) sobre una colección de ejemplo y comprueba que
+  termina solo y con el código de salida correcto.
+- .github\workflows\tests.yml lanza los tres en cada push y pull request,
+  en Windows y en Linux.
+
+
 Uso por línea de comandos / tareas programadas
 -------------------------------------------------
 Para ejecuciones desatendidas (Programador de tareas de Windows, etc.),
 main.ps1 acepta:
 
-    -Action Clean|Orphans|All|Undo   Qué hacer (se salta el menú por
+    -Action Clean|Orphans|All|Undo|Purge
+                                     Qué hacer (se salta el menú por
                                       completo)
     -System <carpeta>                Carpeta del sistema (p.ej. "snes",
                                       "gba"); omite o usa "ALL" para
                                       todos los sistemas configurados.
-                                      Se ignora con -Action Undo.
+                                      Se ignora con -Action Undo y
+                                      -Action Purge.
+    -OlderThanDays <n>               Solo con -Action Purge: borra las
+                                      copias que llevan n días o más en
+                                      _duplicates (1-3650). Por defecto:
+                                      PurgeDuplicatesAfterDays (90).
     -Yes                             Confirma automáticamente cada
                                       pregunta S/N, en vez de esperar a
                                       que alguien responda.
@@ -223,11 +463,21 @@ main.ps1 acepta:
                                       esta ejecución, sin tener que
                                       editar Settings.ps1.
 
+Códigos de salida (útiles para el Programador de tareas y scripts):
+
+    0   Todo correcto.
+    1   Error inesperado (detalles en crash_log.txt) o argumentos no válidos.
+    2   La ejecución terminó, pero alguna acción falló (ver el log).
+
+En modo no interactivo (-Yes) el programa nunca espera una tecla al
+terminar, así que una tarea programada acaba siempre sola.
+
 Ejemplos:
 
     pwsh -File main.ps1 -Action Clean -System snes -Yes
     pwsh -File main.ps1 -Action All -Yes
     pwsh -File main.ps1 -Action Undo -Yes
+    pwsh -File main.ps1 -Action Purge -OlderThanDays 120 -Yes
 
 Sin -Action, main.ps1 se comporta exactamente igual que siempre (menú
 interactivo). Sin -Yes, -Action sigue saltándose el menú pero sigue

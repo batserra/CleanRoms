@@ -1,6 +1,3 @@
-🇬🇧 [English](README.md) | 🇪🇸 [Español](README_ES.md)
-
-
 CleanROMs v2.7
 ==============
 
@@ -81,10 +78,15 @@ The main menu
     2) Undo the last cleanup
     3) Clean up orphaned images/videos/manuals
     4) ALL: Move ROMs and images/videos/manuals for every system
+    5) Configuration (RetroBat path / language)
+    6) Purge _duplicates (DELETE old copies)
+    7) Exit
 
 Every action shows a full preview and asks for confirmation before moving
-or deleting anything. Nothing is ever permanently deleted -- files are
+or deleting anything. Options 1-4 never delete anything -- files are
 moved to a _duplicates\ backup folder, and option 2 can put them back.
+The only thing the program ever deletes for real is option 6 (see "Purging
+_duplicates" below), and only after showing you the list and asking.
 
 A PreviewOnly setting (Config\Settings.ps1) lets you run everything as a
 dry run, useful the first time you try it on a new collection.
@@ -95,9 +97,14 @@ Configuration
 Everything lives under Config\, plain text, editable with any text editor:
 
 - UserSettings.json   Your RetroBat path and chosen language.
-- Settings.ps1        Recognized systems and extensions, ignored folders,
-                       recognized media suffixes, and behavior flags
-                       (PreviewOnly, MoveAssets, RemoveDuplicates...).
+- Systems.json        Supported systems ("Name": "folder"), by category.
+- Extensions.json     RomExtensions (what counts as a ROM) and
+                       IgnoredFolders (never scanned).
+- *.custom.json       Optional Systems.custom.json / Extensions.custom.json
+                       to add your own on top, safe from updates.
+- Settings.ps1        Recognized media suffixes and behavior flags
+                       (PreviewOnly, MoveAssets, RemoveDuplicates,
+                       HashCache, PurgeDuplicatesAfterDays...).
 - DecisionWeights.ps1  The full scoring tables (region, language, dump
                        quality, version, revision) -- freely adjustable.
 - TitleAliases.json    Manual mappings for titles that genuinely change
@@ -135,8 +142,8 @@ What's new in 2.6
   correct system's duplicates folder instead of occasionally creating a
   stray "_duplicates\# Hacks y Otros #\" folder.
 - The confirmation prompt for moving duplicate hacks now explains that
-  these are byte-identical files and that this particular step cannot be
-  undone with the "Undo the last cleanup" menu option.
+  these are byte-identical files. (Earlier it also said this step could
+  not be undone; that was outdated: it can, see below.)
 - Added "Run CleanROMs.bat", a launcher that unblocks the folder and
   starts the program so first-time users don't hit the "not digitally
   signed" PowerShell error.
@@ -147,7 +154,7 @@ What's new in 2.6
   associated files (save files, controller configs) moved along with a
   ROM, not just the ROM itself.
 - New command-line parameters on main.ps1 for scheduled/unattended runs
-  (Windows Task Scheduler and similar): -Action Clean|Orphans|All|Undo,
+  (Windows Task Scheduler and similar): -Action Clean|Orphans|All|Undo|Purge,
   -System <folder>, -Yes (auto-confirm every prompt), -PreviewOnly. See
   "Command-line / scheduled use" below. Running main.ps1 with no
   parameters works exactly as before.
@@ -187,26 +194,253 @@ See the full user manual for details on every feature and the exact
 scoring/tie-break rules.
 
 
+Undo: hacks and chained moves
+------------------------------
+- Moving loose hacks into "# Hacks y Otros #" and moving their exact
+  duplicates to _duplicates are recorded in the plan and can be undone
+  with "Undo the last cleanup", like any other move.
+- "Undo" now goes through the moves from last to first. Before, a hack
+  that was moved twice in the same run (organized, then sent to
+  _duplicates as an exact copy) came back only as far as
+  "# Hacks y Otros #" instead of to its original folder.
+- "Undo the last cleanup" now also brings back the orphaned images, videos
+  and manuals. Before, the orphaned-media step moved them without
+  recording them in the plan, so after "Clean ALL" + "Undo" the ROMs came
+  back but their images and videos stayed in _duplicates. Every media file
+  moved is now one more move in the plan (subfolders included), and one
+  that can't be moved is reported without stopping the rest.
+- If a single file can't be restored (locked by another program, no
+  permission...), "Undo" now warns, counts it ("Failed: N") and goes on
+  with the rest. In unattended mode (-Yes) the exit code is then 2.
+
+
+Multi-file games (.cue/.bin, .gdi, multi-disc, .m3u)
+-----------------------------------------------------
+Disc-based games (PlayStation, Saturn, Dreamcast, Sega CD, PC Engine CD...)
+are made of several files. Each file used to be treated as a separate ROM,
+which broke games: a .cue and its .bin looked like copies of each other
+and one of them was moved; the discs of a game and its .m3u looked like
+duplicates of each other. Now each game is one unit:
+
+- A .cue, .gdi or .m3u carries the files it points to (track .bin/.raw
+  files; the discs listed in an .m3u, and their tracks). They are no
+  longer treated as ROMs on their own.
+- Discs of the same game without an .m3u ("(Disc 1)", "(Disc 2)",
+  "(Disk 1)", "(CD 1)", "(Disc 1 of 2)") form a set represented by the
+  lowest disc.
+- A game is kept or moved WHOLE, never half: you won't end up with a .cue
+  and no .bin. A USA set and a Europe set are compared as sets.
+- If any file of a game would clash with a file already in _duplicates
+  (or with another game in the same plan), that game is left where it is
+  and a warning is shown.
+- Every file is its own move in the plan, so "Undo" puts each one back in
+  its exact original folder.
+- A file referenced by more than one .cue/.m3u (a shared track) is never
+  moved, so the copy you keep keeps working.
+- Known limits: .ccd/.mds descriptors are not parsed; the hack organizer
+  still works file by file.
+
+
+Manual decisions that stick (Config\Overrides.json)
+----------------------------------------------------
+If you disagree with what the scoring engine picks for a particular game,
+say so once and it is respected in every cleanup, including scheduled
+(-Yes) ones. Create Config\Overrides.json (see Config\Overrides.example.json):
+
+    {
+      "Prefer": [ { "System": "snes", "File": "Super Mario World (Europe).sfc" } ],
+      "Ignore": [ { "System": "snes", "Title": "Super Mario World" },
+                  { "System": "nes",  "File": "Zelda II (USA).nes" } ]
+    }
+
+- Prefer: that ROM always wins its duplicate group; the other copies move
+  as usual.
+- Ignore: the group is left completely untouched. Identify it by "Title"
+  (the name printed after "Group:" during a cleanup, or the game's normal
+  title) or by "File" (any copy in the group with that file name).
+- "System" is the system folder name (snes, nes...). Leave it out, or use
+  "*", to apply to every system. Names are not case-sensitive.
+- When the program asks you which of two tied ROMs to keep, it now offers
+  to remember your answer: it is saved here as a "Prefer".
+- If the file doesn't exist, nothing changes. If it can't be read, you get
+  a warning and it is ignored (the program never overwrites a file it
+  can't read).
+
+
+RetroBat gamelist.xml (favorites, play counts...)
+--------------------------------------------------
+When a duplicate ROM is moved, its user data in the system's gamelist.xml
+is carried over to the ROM that stays, so you don't lose your favorites
+or play history:
+
+- favorite: kept if either copy was a favorite.
+- playcount, gametime: the higher of the two (they are NOT added up, so
+  undoing and cleaning again never inflates them).
+- lastplayed: the most recent date. rating: the highest one.
+- name, desc, developer, publisher, genre, players, releasedate...:
+  copied only if the ROM that stays doesn't have them.
+- Image/video/manual paths are never copied (they belong to the moved
+  file). No entry is ever deleted, so "Undo" keeps working as before.
+- If the ROM that stays has no entry, a new one is created.
+- It also applies to the exact duplicates found inside
+  "# Hacks y Otros #".
+- When the hack organizer moves loose hacks into "# Hacks y Otros #", each
+  hack's gamelist.xml entry follows the file: its <path> is updated (with
+  a backup first), so RetroBat doesn't lose its favorites and play history.
+  "Undo the last cleanup" puts the path back. Hacks without an entry are
+  moved as usual and the gamelist.xml is left untouched.
+- Before saving, a copy of gamelist.xml is stored in
+  Resultado\GamelistBackups\ (the last UndoHistoryLimit copies per system).
+
+With PreviewOnly it only reports what it would do. To turn it off, set
+MergeGamelistMetadata = $false in Config\Settings.ps1 (it disables every
+change to the gamelist.xml: the merge and the path updates).
+
+
+Hash cache
+----------
+Hashing thousands of ROMs is the slowest part of a cleanup, and every run
+used to read and hash the same unchanged files again. The program now keeps
+Resultado\HashCache.tsv with each file's hash plus its size and last
+modification date at the time it was computed. A stored hash is reused
+only while BOTH are still exactly the same; if either changes, the file is
+hashed again.
+
+- The next cleanups skip every file that hasn't changed, and the screen
+  tells you how many hashes were reused.
+- If you change HashAlgorithm (MD5, SHA256...), the cache is discarded.
+- It is only an accelerator: if it is missing, damaged or can't be written,
+  everything works the same, just slower. Delete Resultado\HashCache.tsv to
+  start over, or set HashCache = $false in Config\Settings.ps1 to turn it
+  off. (The only way it could ever be wrong is a file whose content changed
+  without its size or date changing, which practically never happens.)
+- Deduplication of "# Hacks y Otros #" now skips files whose size is unique
+  in the folder: two files can only be identical if they weigh exactly the
+  same, so most are never even read.
+
+
+Purging _duplicates (menu option 6, -Action Purge)
+---------------------------------------------------
+_duplicates only ever grows. Option 6 deletes the copies that have been
+there for N days or more (Config\Settings.ps1: PurgeDuplicatesAfterDays,
+90 by default; the menu asks for the number and Enter keeps the default).
+It is the ONLY thing the program deletes for real, so it is careful:
+
+- Age counts from when the file was MOVED to _duplicates (read from the
+  saved plans in Resultado\), not from the file's own date, which is the
+  date of the original ROM. If a file was moved several times, the last
+  move counts. Associated files (save files...) and media in subfolders
+  count with the date of their move.
+- Files with no known move date (for example from plans already rotated
+  out of the history) are never deleted all at once: their count starts
+  the first time the purge sees them (Resultado\DuplicatesSeen.tsv), and
+  they only become candidates N days later. If such a file changes, its
+  count starts over.
+- It always shows what it would delete (per system, the oldest files, the
+  total size) and asks for confirmation -- with -Yes it doesn't ask. With
+  PreviewOnly it only simulates.
+- It only touches files inside _duplicates, removes the folders left
+  empty, and writes what it deleted to Resultado\PurgeLog_<date>.txt.
+- Purged files can no longer be restored: "Undo" simply skips the ones that
+  are gone and restores the rest. A file that can't be deleted is reported
+  without stopping the others (exit code 2 in unattended mode).
+
+
+Systems and extensions in JSON
+------------------------------
+The systems the program knows, the extensions it treats as ROMs and the
+folders it never scans used to be lists inside Config\Settings.ps1, mixed
+with code. They now live in Config\Systems.json and Config\Extensions.json,
+safe to edit with any text editor. To add your own WITHOUT touching those
+files (so an update never overwrites them), create the optional
+Config\Systems.custom.json and/or Config\Extensions.custom.json, same format:
+
+    Systems.custom.json:     { "Mine": { "My system": "mysystem" } }
+    Extensions.custom.json:  { "RomExtensions": [".xyz"], "IgnoredFolders": ["my_stuff"] }
+
+- In systems, a repeated name takes the folder from the custom file; in
+  extensions and ignored folders, the lists are added together.
+- Extensions are normalized (".SFC" and "sfc" both become ".sfc").
+- A single invalid entry is reported with a warning naming the file and
+  ignored. If a file can't be read (broken JSON) or defines no systems or
+  extensions, the program stops with a message naming the file and the
+  error.
+
+
+Version number and releases
+---------------------------
+The version number lives in ONE file, VERSION (it used to be repeated in
+every file header, the menu banner, the log and the plans). To publish a
+version:
+
+    (1) put the number in VERSION and commit
+    (2) git tag v2.8
+    (3) git push origin v2.8
+
+.github\workflows\release.yml then checks that the tag matches VERSION, runs
+the checks and the tests, builds CleanRoms-v2.8.zip (plus its .sha256) and
+publishes a GitHub Release with them attached. You can also build the ZIP
+yourself with:  pwsh -File Tools\Build-Release.ps1
+
+- Everything inside the ZIP goes in ONE folder named after the version, so
+  unzipping over an older installation never mixes old and new files.
+- Nothing personal is included: UserSettings.json, Overrides.json, your
+  *.custom.json files, Logs, Resultado and crash_log.txt are never in the
+  ZIP, so a new version can't overwrite your settings or decisions.
+- Every message on screen (progress bars and the unexpected-error message
+  included) now comes from Strings.ps1 in Spanish and English; a test checks
+  that every message the code uses exists in both languages.
+
+
+Tests and continuous integration
+---------------------------------
+- Tests\Run-AllTests.ps1 (or Run-AllTests.bat) runs the whole test suite.
+  It exits with code 1 if any test fails or is interrupted by an error.
+- Tests\Check-Project.ps1 checks the syntax of every .ps1, that every file
+  loaded with "$Root\..." exists with the exact upper/lower case (it
+  matters on Linux), and that the .json files are valid.
+- Tests\Smoke-Unattended.ps1 runs the real program in unattended mode
+  (-Action ... -Yes) on a small sample collection and checks it finishes
+  on its own, with the right exit code.
+- .github\workflows\tests.yml runs all three on every push and pull
+  request, on Windows and Linux.
+
+
 Command-line / scheduled use
 ------------------------------
 For unattended runs (Task Scheduler, cron under WSL, etc.), main.ps1
 accepts:
 
-    -Action Clean|Orphans|All|Undo   What to do (skips the menu entirely)
+    -Action Clean|Orphans|All|Undo|Purge
+                                     What to do (skips the menu entirely)
     -System <folder>                 Which system's folder (e.g. "snes",
                                       "gba"); omit or use "ALL" for every
                                       configured system. Ignored by -Action
-                                      Undo.
+                                      Undo and -Action Purge.
+    -OlderThanDays <n>               Only for -Action Purge: delete the
+                                      copies that have been in _duplicates
+                                      for n days or more (1-3650). Default:
+                                      PurgeDuplicatesAfterDays (90).
     -Yes                             Auto-confirm every Y/N prompt instead
                                       of waiting for input.
     -PreviewOnly                     Force simulation mode for this run
                                       only, without editing Settings.ps1.
+
+Exit codes (useful for Task Scheduler and scripts):
+
+    0   Everything went fine.
+    1   Unexpected error (details in crash_log.txt) or invalid arguments.
+    2   The run finished, but one or more actions failed (see the log).
+
+In unattended mode (-Yes) the program never waits for a key press at the
+end, so a scheduled task always finishes on its own.
 
 Examples:
 
     pwsh -File main.ps1 -Action Clean -System snes -Yes
     pwsh -File main.ps1 -Action All -Yes
     pwsh -File main.ps1 -Action Undo -Yes
+    pwsh -File main.ps1 -Action Purge -OlderThanDays 120 -Yes
 
 Without -Action, main.ps1 behaves exactly as it always has (interactive
 menu). Without -Yes, -Action still skips the menu but still asks for

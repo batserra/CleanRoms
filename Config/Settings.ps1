@@ -1,6 +1,6 @@
 ﻿# ============================================================
 #
-# CleanROMs v2.7
+# CleanROMs
 #
 # Settings.ps1
 #
@@ -35,6 +35,37 @@ $Global:RetroBatRoot = "C:\RetroBat\roms"
 #--------------------------------------------------------------
 
 $Global:AutoConfirm = $false
+
+#--------------------------------------------------------------
+# Version del programa
+#
+# Se lee del archivo VERSION (junto a main.ps1): es el UNICO sitio
+# donde hay que cambiarla al publicar una version nueva. Aparece en
+# el banner del menu, en el log y en los planes; el flujo de
+# publicacion (.github\workflows\release.yml) comprueba que la
+# etiqueta de GitHub coincida con este numero.
+#--------------------------------------------------------------
+
+$Global:AppVersion = "dev"
+
+try
+{
+    $versionFile = Join-Path (Split-Path $PSScriptRoot -Parent) "VERSION"
+
+    if(Test-Path -LiteralPath $versionFile)
+    {
+        $versionText = (Get-Content -LiteralPath $versionFile -TotalCount 1).Trim()
+
+        if($versionText -ne "")
+        {
+            $Global:AppVersion = $versionText
+        }
+    }
+}
+catch
+{
+    # sin VERSION se queda en "dev"
+}
 
 #--------------------------------------------------------------
 # Configurar la ruta de RetroBat sin tener que editar el código
@@ -409,6 +440,17 @@ $Global:Settings = @{
     MoveAssets       = $true
 
     #
+    # Al mover una ROM duplicada, pasa sus datos de usuario del
+    # gamelist.xml de RetroBat (favorito, veces jugada, ultima
+    # partida, nota; y descripcion/genero/etc. si faltan) a la
+    # entrada de la ROM que se conserva. No borra ninguna entrada y
+    # guarda antes una copia en Resultado\GamelistBackups\. Ver
+    # Modules\GamelistManager.ps1. Poner a $false para desactivarlo.
+    #
+
+    MergeGamelistMetadata = $true
+
+    #
     # Verificacion por hash (SHA256/MD5): compara el contenido real
     # de los archivos, no solo el nombre. Se usa siempre (barato,
     # solo 2 archivos) para resolver un empate total sin tener que
@@ -461,242 +503,268 @@ $Global:Settings = @{
 
     HashParallelism = 4
 
+    #
+    # Cache de hashes (Resultado\HashCache.tsv). Guarda el hash de
+    # cada archivo junto con su tamano y fecha de modificacion y lo
+    # reutiliza mientras no cambien, asi las siguientes limpiezas no
+    # vuelven a leer y hashear los mismos archivos. Ver
+    # Modules\HashCache.ps1. Poner a $false para desactivarla (o
+    # borrar Resultado\HashCache.tsv para empezar de cero).
+    #
+
+    HashCache = $true
+
+    #
+    # Purga de _duplicates (opcion 6 del menu, o -Action Purge): cuantos
+    # dias deben llevar las copias en _duplicates, desde que se
+    # movieron, para que la purga las borre. Es lo unico que el
+    # programa borra de verdad; antes de borrar siempre ensena la
+    # lista y pide confirmacion (con -Yes, no). Puedes indicar otro
+    # valor en cada ejecucion con la opcion de menu o -OlderThanDays.
+    #
+
+    PurgeDuplicatesAfterDays = 90
+
 }
 
 #--------------------------------------------------------------
-# Sistemas soportados
+# Sistemas, extensiones y carpetas ignoradas: Config\*.json
+#
+# Estos datos antes eran listas dentro de este mismo archivo, mezcladas
+# con codigo. Ahora viven en archivos JSON que se pueden editar sin
+# miedo a romper el programa:
+#
+#   Config\Systems.json      sistemas soportados: "Nombre": "carpeta",
+#                            agrupados por categorias (o sueltos)
+#   Config\Extensions.json   "RomExtensions" (extensiones que se
+#                            consideran ROMs) y "IgnoredFolders"
+#                            (carpetas que nunca se escanean)
+#
+# Opcionalmente, para anadir cosas tuyas SIN tocar los archivos
+# anteriores (asi una actualizacion del programa no te las pisa):
+#
+#   Config\Systems.custom.json      mismo formato que Systems.json; se
+#                                   suma, y si repite un nombre manda
+#   Config\Extensions.custom.json   mismo formato que Extensions.json;
+#                                   sus listas se SUMAN a las de arriba
+#
+# Si un archivo no se puede leer, el programa se detiene con un
+# mensaje claro que indica el archivo y el error. Una entrada concreta
+# no valida se avisa y se ignora, sin tumbar el resto.
 #--------------------------------------------------------------
 
-$Global:SystemPaths = @{
+function Read-ConfigJson {
 
-    # Consolas de Sobremesa
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
 
-    "Nintendo Entertainment System (NES)" = "nes"
-    "Nintendo Entertainment System 3D (NES3D)" = "nes3d"
-    "SNES" = "snes"
-    "Nintendo 64 (N64)" = "n64"
-    "Nintendo GameCube" = "gamecube"
-    "Nintendo Wii" = "wii"
-    "Nintendo Wii U" = "wiiu"
-    "Nintendo Switch" = "switch"
-    "Sony PlayStation 1 (PS1)" = "psx"
-    "Sony PlayStation 2 (PS2)" = "ps2"
-    "Sony PlayStation 3 (PS3)" = "ps3"
-    "Master System" = "mastersystem"
-    "Sega Mega Drive / Genesis" = "megadrive"
-    "Sega CD / Mega CD" = "segacd"
-    "Sega Saturn" = "saturn"
-    "Sega Dreamcast" = "dreamcast"
-    "Microsoft Xbox (Clásica)" = "xbox"
-    "Microsoft Xbox 360" = "xbox360"
-    "Atari 2600" = "atari2600"
-    "Atari 7800" = "atari7800"
-    "Atari Jaguar" = "atarijaguar"
-    "TurboGrafx-16 / PC Engine" = "pcengine"
-    "ColecoVision" = "coleco"
-    "Mattel Intellivision" = "intellivision"
-    "GCE Vectrex" = "vectrex"
-    "Panasonic 3DO" = "3do"
-    "Philips CD-i" = "cdi"
+        [switch]$Optional
+    )
 
-    # Consolas Portátiles
+    if(!(Test-Path -LiteralPath $Path))
+    {
+        if($Optional)
+        {
+            return $null
+        }
 
-    "Nintendo Game Boy (GB)" = "gb"
-    "Nintendo Game Boy Color (GBC)" = "gbc"
-    "Nintendo Game Boy Advance (GBA)" = "gba"
-    "Nintendo DS (NDS)" = "nds"
-    "Nintendo 3DS" = "n3ds"
-    "Sony PlayStation Portable (PSP)" = "psp"
-    "Sony PS Vita" = "psvita"
-    "Sega Game Gear" = "gamegear"
-    "Atari Lynx" = "lynx"
-    "SNK Neo Geo Pocket / Color" = "ngpc"
-    "Bandai WonderSwan / Color" = "wonderswan"
-    "Watara Supervision" = "supervision"
+        throw "Falta el archivo de configuracion / Missing configuration file: $Path"
+    }
 
-    # Microordenadores
+    try
+    {
+        $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
 
-    "Amstrad CPC" = "amstradcpc"
-    "Amstrad GX4000" = "gx4000"
-    "MSX / MSX2 / MSX2+" = "msx"
-    "Sinclair ZX Spectrum" = "zxspectrum"
-    "Commodore 64 (C64)" = "c64"
-    "Commodore Amiga 500" = "amiga500"
-    "Commodore Amiga 1200" = "amiga1200"
-    "Atari ST" = "atarist"
-    "Apple II" = "apple2"
-    "PC DOS" = "dos"
-    "Sharp X68000" = "x68000"
-    "NEC PC-9801" = "pc98"
-    "Thomson MO/TO" = "thomson"
+        if([string]::IsNullOrWhiteSpace($raw))
+        {
+            return $null
+        }
 
-    # Sistemas Arcade
-
-    "Capcom Play System I (CPS1)" = "cps1"
-    "Capcom Play System II (CPS2)" = "cps2"
-    "Capcom Play System III (CPS3)" = "cps3"
-    "SNK Neo-Geo AES / MVS" = "neogeo"
-    "MAME (General Arcade)" = "mame"
-    "FinalBurn Neo (FBNeo)" = "fbneo"
-    "Sammy Atomiswave" = "atomiswave"
-    "Sega Naomi / Naomi 2" = "naomi"
-    "Sega Model 2" = "model2"
-    "Sega Model 3" = "model3"
-    "LaserDisc (Daphne / Singe)" = "daphne"
+        return ($raw | ConvertFrom-Json)
+    }
+    catch
+    {
+        throw "No se pudo leer $Path (JSON no valido) / Could not read $Path (invalid JSON): $($_.Exception.Message)"
+    }
 }
 
-#--------------------------------------------------------------
-# Extensiones soportadas
-#--------------------------------------------------------------
+# Mezcla en $Target (hashtable nombre -> carpeta) los sistemas de un
+# JSON, tanto si estan agrupados por categorias como sueltos.
+function Add-SystemsFromJson {
 
-$Global:RomExtensions = @(
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        $Target,
 
-    ".2mg",
-    ".3ds",
-    ".7z",
-    ".a26",
-    ".a78",
-    ".adf",
-    ".bin",
-    ".cas",
-    ".cci",
-    ".cdi",
-    ".cdt",
-    ".chd",
-    ".ciso",
-    ".col",
-    ".cpc",
-    ".cpr",
-    ".crt",
-    ".cso",
-    ".cue",
-    ".cxi",
-    ".d64",
-    ".d88",
-    ".d98",
-    ".dap",
-    ".dim",
-    ".dms",
-    ".do",
-    ".dosz",
-    ".dsk",
-    ".fba",
-    ".fd",
-    ".fdi",
-    ".fds",
-    ".fig",
-    ".g64",
-    ".gb",
-    ".gba",
-    ".gbc",
-    ".gcm",
-    ".gcz",
-    ".gdi",
-    ".gen",
-    ".gg",
-    ".gz",
-    ".hdf",
-    ".hdi",
-    ".hds",
-    ".hdv",
-    ".img",
-    ".int",
-    ".ipf",
-    ".iso",
-    ".j64",
-    ".jag",
-    ".k7",
-    ".lha",
-    ".lnx",
-    ".m3u",
-    ".m5",
-    ".m7",
-    ".md",
-    ".msa",
-    ".mx1",
-    ".mx2",
-    ".n64",
-    ".nca",
-    ".nds",
-    ".nes",
-    ".ngc",
-    ".ngp",
-    ".nhd",
-    ".nib",
-    ".nsp",
-    ".pbp",
-    ".pce",
-    ".po",
-    ".prg",
-    ".rar",
-    ".rom",
-    ".rpx",
-    ".rvz",
-    ".sap",
-    ".scl",
-    ".sfc",
-    ".smc",
-    ".smd",
-    ".sms",
-    ".sna",
-    ".st",
-    ".stx",
-    ".sv",
-    ".t64",
-    ".tap",
-    ".thd",
-    ".trd",
-    ".tzx",
-    ".unf",
-    ".v64",
-    ".vec",
-    ".voc",
-    ".vpk",
-    ".wav",
-    ".wbfs",
-    ".ws",
-    ".wsc",
-    ".wua",
-    ".wux",
-    ".xbe",
-    ".xci",
-    ".xex",
-    ".z64",
-    ".z80",
-    ".zip"
+        [Parameter(Mandatory)]
+        $Json,
 
-)
+        [Parameter(Mandatory)]
+        [string]$FileName
+    )
 
-#--------------------------------------------------------------
-# Carpetas que nunca deben escanearse
-#--------------------------------------------------------------
+    $invalidChars = [System.IO.Path]::GetInvalidFileNameChars()
 
-$Global:IgnoredFolders = @(
+    $pairs = @()
 
-    "_duplicates",
+    foreach($property in $Json.PSObject.Properties)
+    {
+        if($property.Value -is [string])
+        {
+            $pairs += ,@($property.Name, $property.Value)
+        }
+        elseif($null -ne $property.Value -and $property.Value.PSObject.Properties)
+        {
+            foreach($inner in $property.Value.PSObject.Properties)
+            {
+                $pairs += ,@($inner.Name, $inner.Value)
+            }
+        }
+    }
 
-    "images",
-    "videos",
+    foreach($pair in $pairs)
+    {
+        $name = [string]$pair[0]
+        $folder = $pair[1]
 
-    "manuals",
+        if([string]::IsNullOrWhiteSpace($name) -or $folder -isnot [string] -or
+           [string]::IsNullOrWhiteSpace($folder) -or $folder.IndexOfAny($invalidChars) -ge 0)
+        {
+            Write-Warning "$FileName`: sistema no valido, se ignora / invalid system, ignored: '$name'"
+            continue
+        }
 
-    "media",
+        $Target[$name] = $folder.Trim()
+    }
+}
 
-    "boxart",
+# Anade a $Target (lista) los textos validos de un array de un JSON.
+function Add-StringsFromJson {
 
-    "bezels",
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [System.Collections.Generic.List[string]]$Target,
 
-    "overlays",
+        $Values,
 
-    "cheats",
+        [Parameter(Mandatory)]
+        [string]$FileName,
 
-    "saves",
+        [Parameter(Mandatory)]
+        [string]$ListName,
 
-    "states",
+        [switch]$IsExtension
+    )
 
-    "bios"
+    foreach($value in @($Values))
+    {
+        if($value -isnot [string] -or [string]::IsNullOrWhiteSpace($value))
+        {
+            Write-Warning "$FileName`: valor no valido en $ListName, se ignora / invalid value in $ListName, ignored"
+            continue
+        }
 
-)
+        $text = $value.Trim()
+
+        if($IsExtension)
+        {
+            $text = $text.ToLowerInvariant()
+
+            if(-not $text.StartsWith("."))
+            {
+                $text = "." + $text
+            }
+        }
+
+        if(-not $Target.Contains($text))
+        {
+            $Target.Add($text)
+        }
+    }
+}
+
+function Import-DataConfig {
+
+    param(
+        # Carpeta de los JSON (los tests usan una temporal)
+        [string]$ConfigFolder = $PSScriptRoot
+    )
+
+    $configFolder = $ConfigFolder
+
+    # --- Sistemas
+
+    $systems = @{}
+
+    $systemsJson = Read-ConfigJson -Path (Join-Path $configFolder "Systems.json")
+
+    if($null -ne $systemsJson)
+    {
+        Add-SystemsFromJson -Target $systems -Json $systemsJson -FileName "Systems.json"
+    }
+
+    $customSystems = Read-ConfigJson -Path (Join-Path $configFolder "Systems.custom.json") -Optional
+
+    if($null -ne $customSystems)
+    {
+        Add-SystemsFromJson -Target $systems -Json $customSystems -FileName "Systems.custom.json"
+    }
+
+    if($systems.Count -eq 0)
+    {
+        throw "Config\Systems.json no define ningun sistema / defines no systems"
+    }
+
+    # --- Extensiones y carpetas ignoradas
+
+    $extensions = New-Object 'System.Collections.Generic.List[string]'
+    $ignored = New-Object 'System.Collections.Generic.List[string]'
+
+    $extensionsJson = Read-ConfigJson -Path (Join-Path $configFolder "Extensions.json")
+
+    if($null -ne $extensionsJson)
+    {
+        # (con PSObject.Properties: una clave que falte no debe dar error aunque haya Set-StrictMode)
+        if($extensionsJson.PSObject.Properties["RomExtensions"])
+        {
+            Add-StringsFromJson -Target $extensions -Values $extensionsJson.RomExtensions -FileName "Extensions.json" -ListName "RomExtensions" -IsExtension
+        }
+
+        if($extensionsJson.PSObject.Properties["IgnoredFolders"])
+        {
+            Add-StringsFromJson -Target $ignored -Values $extensionsJson.IgnoredFolders -FileName "Extensions.json" -ListName "IgnoredFolders"
+        }
+    }
+
+    $customExtensions = Read-ConfigJson -Path (Join-Path $configFolder "Extensions.custom.json") -Optional
+
+    if($null -ne $customExtensions)
+    {
+        if($customExtensions.PSObject.Properties["RomExtensions"])
+        {
+            Add-StringsFromJson -Target $extensions -Values $customExtensions.RomExtensions -FileName "Extensions.custom.json" -ListName "RomExtensions" -IsExtension
+        }
+
+        if($customExtensions.PSObject.Properties["IgnoredFolders"])
+        {
+            Add-StringsFromJson -Target $ignored -Values $customExtensions.IgnoredFolders -FileName "Extensions.custom.json" -ListName "IgnoredFolders"
+        }
+    }
+
+    if($extensions.Count -eq 0)
+    {
+        throw "Config\Extensions.json no define ninguna extension / defines no extensions"
+    }
+
+    $Global:SystemPaths = $systems
+    $Global:RomExtensions = @($extensions)
+    $Global:IgnoredFolders = @($ignored)
+}
+
+Import-DataConfig
 
 #--------------------------------------------------------------
 # Obtener carpeta del sistema

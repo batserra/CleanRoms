@@ -28,6 +28,12 @@ $originalLanguage = $Global:Settings.Language
 $Global:Settings.PreviewOnly = $true
 $Global:Settings.Language = "es"
 
+# Ruta de RetroBat portable: el valor por defecto de Settings.ps1
+# ("C:\RetroBat\roms") no existe fuera de Windows y Join-Path falla
+# con "Cannot find drive".
+$originalRoot = $Global:RetroBatRoot
+$Global:RetroBatRoot = Join-Path (Join-Path ([System.IO.Path]::GetTempPath()) "RetroBat_Fake") "roms"
+
 function global:Read-Host
 {
     param($Prompt)
@@ -52,6 +58,7 @@ finally
 {
     $Global:Settings.PreviewOnly = $originalPreviewOnly
     $Global:Settings.Language = $originalLanguage
+    $Global:RetroBatRoot = $originalRoot
 
     Remove-Item Function:\Read-Host -ErrorAction SilentlyContinue
 

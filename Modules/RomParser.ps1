@@ -1,6 +1,6 @@
 ﻿# ============================================================
 #
-# CleanROMs v2.7
+# CleanROMs
 #
 # RomParser.ps1
 #
@@ -224,9 +224,29 @@ function Get-RomHash {
         return $null
     }
 
+    $useCache = Test-HashCacheEnabled
+
+    if($useCache)
+    {
+        $cached = Get-CachedHash -Path $Path -Algorithm $Algorithm
+
+        if($null -ne $cached)
+        {
+            return $cached
+        }
+    }
+
     try
     {
-        return (Get-FileHash -LiteralPath $Path -Algorithm $Algorithm).Hash
+        $hash = (Get-FileHash -LiteralPath $Path -Algorithm $Algorithm).Hash
+
+        if($useCache -and $hash)
+        {
+            # Se guarda en disco al final (Save-HashCache en main.ps1)
+            Set-CachedHash -Path $Path -Algorithm $Algorithm -Hash $hash
+        }
+
+        return $hash
     }
     catch
     {
@@ -314,6 +334,67 @@ function Get-RomHashesParallel {
 
     $uniquePaths = @($Paths | Select-Object -Unique)
 
+    #
+    # Cache de hashes (ver HashCache.ps1): lo que ya se hasheo en una
+    # ejecucion anterior y no ha cambiado (mismo tamano y fecha) se
+    # reutiliza; solo se calcula lo demas.
+    #
+
+    $cacheEnabled = Test-HashCacheEnabled
+    $hitsBefore = [int]$Global:HashCacheStats.Hits
+
+    if($cacheEnabled)
+    {
+        $pending = @()
+
+        foreach($p in $uniquePaths)
+        {
+            $cachedHash = Get-CachedHash -Path $p -Algorithm $Algorithm
+
+            if($null -ne $cachedHash)
+            {
+                $result[$p] = $cachedHash
+            }
+            else
+            {
+                $pending += $p
+            }
+        }
+
+        $uniquePaths = $pending
+    }
+
+    function Complete-HashBatch
+    {
+        if(-not $cacheEnabled)
+        {
+            return
+        }
+
+        foreach($p in $uniquePaths)
+        {
+            if($result[$p])
+            {
+                Set-CachedHash -Path $p -Algorithm $Algorithm -Hash $result[$p]
+            }
+        }
+
+        Save-HashCache
+
+        $reused = [int]$Global:HashCacheStats.Hits - $hitsBefore
+
+        if($reused -gt 0)
+        {
+            Write-Host (T "hashcache.summary" @($reused, $uniquePaths.Count)) -ForegroundColor DarkGray
+        }
+    }
+
+    if($uniquePaths.Count -eq 0)
+    {
+        Complete-HashBatch
+        return $result
+    }
+
     $threshold = $Global:Settings.HashParallelThreshold
 
     if($null -eq $threshold -or $threshold -lt 1)
@@ -328,6 +409,7 @@ function Get-RomHashesParallel {
             $result[$path] = Get-RomHash -Path $path -Algorithm $Algorithm
         }
 
+        Complete-HashBatch
         return $result
     }
 
@@ -375,6 +457,7 @@ function Get-RomHashesParallel {
         $result[$item.Path] = $item.Hash
     }
 
+    Complete-HashBatch
     return $result
 
 }

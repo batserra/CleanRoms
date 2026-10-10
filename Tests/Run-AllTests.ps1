@@ -6,7 +6,8 @@
 #
 # ============================================================
 
-Clear-Host
+# En CI (sin consola real) Clear-Host puede fallar: no es motivo para parar
+try { Clear-Host } catch { }
 
 $Root = Split-Path $PSScriptRoot -Parent
 
@@ -31,6 +32,15 @@ Import-Module "$Root\Config\DecisionWeights.ps1"
 . "$Root\Modules\Cleaner.ps1"
 . "$Root\Modules\Executor.ps1"
 . "$Root\Modules\HackOrganizer.ps1"
+. "$Root\Modules\GamelistManager.ps1"
+. "$Root\Modules\Overrides.ps1"
+. "$Root\Modules\RomSets.ps1"
+. "$Root\Modules\HashCache.ps1"
+. "$Root\Modules\DuplicatesPurger.ps1"
+
+# Los tests no deben tocar la cache de hashes real del usuario
+# (Resultado\HashCache.tsv): usan una propia, temporal.
+$Global:HashCachePath = Join-Path ([System.IO.Path]::GetTempPath()) ("CleanRoms_Tests_HashCache_" + [guid]::NewGuid() + ".tsv")
 . "$Root\Modules\UndoManager.ps1"
 . "$Root\Modules\Summary.ps1"
 
@@ -70,7 +80,24 @@ foreach($test in $tests)
     Write-Host ""
     Write-Host ("Ejecutando: {0}" -f $test.Name) -ForegroundColor Yellow
 
-    & $test.FullName
+    #
+    # Si un test lanza una excepcion que lo corta a la mitad, antes
+    # el resto de sus comprobaciones se perdia en silencio y el
+    # resumen seguia diciendo "todos superados". Ahora cuenta como
+    # fallo.
+    #
+
+    try
+    {
+        & $test.FullName
+    }
+    catch
+    {
+        $Global:TestsRun++
+        $Global:TestsFailed++
+
+        Write-Host ("[FAIL] {0} se interrumpio con una excepcion: {1}" -f $test.Name, $_.Exception.Message) -ForegroundColor Red
+    }
 }
 
 #----------------------------------------------------------
@@ -107,3 +134,17 @@ else
 }
 
 Write-Host ""
+
+Remove-Item -LiteralPath $Global:HashCachePath -Force -ErrorAction SilentlyContinue
+Reset-HashCache
+
+#----------------------------------------------------------
+# Codigo de salida (lo usa el CI: 0 = todo bien, 1 = algo fallo)
+#----------------------------------------------------------
+
+if($Global:TestsFailed -gt 0 -or $Global:TestsRun -eq 0)
+{
+    exit 1
+}
+
+exit 0

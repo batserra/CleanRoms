@@ -1,6 +1,6 @@
 ﻿# ============================================================
 #
-# CleanROMs v2.7
+# CleanROMs
 #
 # DecisionEngine.ps1
 #
@@ -538,12 +538,17 @@ function Resolve-RomTie {
     }
     until($choice -match '^[12]$')
 
-    if([int]$choice -eq 1)
-    {
-        return $A
-    }
+    $chosen = if([int]$choice -eq 1) { $A } else { $B }
 
-    return $B
+    #
+    # Ofrece guardar la eleccion en Config\Overrides.json para que
+    # la proxima limpieza (tambien las desatendidas) no vuelva a
+    # preguntar por este juego.
+    #
+
+    Invoke-OfferRememberChoice -Chosen $chosen
+
+    return $chosen
 }
 
 #=========================================================
@@ -690,14 +695,45 @@ function Decide-RomGroup {
 
     param(
         [Parameter(Mandatory)]
-        [array]$Roms
+        [array]$Roms,
+
+        #
+        # Ruta de la ROM que el usuario ha fijado como preferida en
+        # Config\Overrides.json (ver Overrides.ps1). Si es una de
+        # las del grupo, gana siempre, sin puntuar ni preguntar en
+        # empates. Vacio = decide el motor, como siempre.
+        #
+
+        [string]$PreferredPath = ""
     )
 
     if($Roms.Count -eq 0){
         return $null
     }
 
-    $keep = Get-BestRom $Roms
+    $manual = $false
+    $keep = $null
+
+    if(-not [string]::IsNullOrWhiteSpace($PreferredPath))
+    {
+        $keep = $Roms | Where-Object { $_.FullPath -eq $PreferredPath } | Select-Object -First 1
+
+        if($null -ne $keep)
+        {
+            $manual = $true
+
+            # Las puntuaciones se siguen calculando (para los motivos
+            # que se muestran), pero sin comparar ni desempatar.
+            foreach($rom in $Roms){
+                $rom.Score = Get-RomScore $rom
+            }
+        }
+    }
+
+    if(-not $manual)
+    {
+        $keep = Get-BestRom $Roms
+    }
 
     $move = @()
 
@@ -721,6 +757,11 @@ function Decide-RomGroup {
                 }
             }
 
+            if($manual)
+            {
+                $reason += (T "overrides.moveReason")
+            }
+
             $move += [PSCustomObject]@{
 
                 Rom    = $rom
@@ -740,7 +781,7 @@ function Decide-RomGroup {
 
         WinnerScore = $keep.Score
 
-        KeepReason = Get-DecisionReason $keep
+        KeepReason = @(Get-DecisionReason $keep) + $(if($manual){ @(T "overrides.keepReason") } else { @() })
 
         DecisionDate = Get-Date
 
@@ -767,7 +808,7 @@ function Show-Decision
     Write-Host "========================================="
     Write-Host ""
 
-    Write-Host "ROM CONSERVADA" -ForegroundColor Green
+    Write-Host (T "decision.kept") -ForegroundColor Green
     Write-Host "---------------"
 
     Write-Host $decision.Keep.Title
@@ -780,7 +821,7 @@ function Show-Decision
     }
 
     Write-Host ""
-    Write-Host "ROMS DESCARTADAS" -ForegroundColor Yellow
+    Write-Host (T "decision.discarded") -ForegroundColor Yellow
     Write-Host "-----------------"
 
     foreach($item in $decision.MoveReasons)

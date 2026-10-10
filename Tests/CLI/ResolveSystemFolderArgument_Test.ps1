@@ -10,7 +10,9 @@
 
 $originalRoot = $Global:RetroBatRoot
 
-$Global:RetroBatRoot = "C:\RetroBat\roms"
+# Ruta portable: con "C:\RetroBat\roms" Join-Path falla en Linux y las
+# comparaciones de abajo se cumplian "por casualidad" (null contra null).
+$Global:RetroBatRoot = Join-Path (Join-Path ([System.IO.Path]::GetTempPath()) "RetroBat_Fake") "roms"
 
 try
 {

@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# CleanROMs v2.7
+# CleanROMs
 #
 # Menu.ps1
 #
@@ -12,7 +12,7 @@ function Show-Banner {
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host ("           {0}           " -f (T "banner.title")) -ForegroundColor Yellow
+    Write-Host ("           {0}           " -f (T "banner.title" $Global:AppVersion)) -ForegroundColor Yellow
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -32,13 +32,14 @@ function Select-MainAction {
     Write-Host (T "menu.option4")
     Write-Host (T "menu.option5")
     Write-Host (T "menu.option6")
+    Write-Host (T "menu.option7")
     Write-Host ""
 
     do
     {
         $option = Read-Host (T "menu.prompt")
     }
-    until($option -match '^[123456]$')
+    until($option -match '^[1-7]$')
 
     return [int]$option
 }
@@ -153,6 +154,16 @@ function Select-System {
 #--------------------------------------------------------------
 
 function Pause-End {
+
+    #
+    # En modo no interactivo (-Yes) no hay nadie delante para pulsar
+    # Enter: una tarea programada se quedaria colgada para siempre.
+    #
+
+    if($Global:AutoConfirm)
+    {
+        return
+    }
 
     Write-Host ""
     Read-Host (T "menu.pressEnterExit")

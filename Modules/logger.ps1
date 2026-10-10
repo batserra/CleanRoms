@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# CleanROMs v2.7
+# CleanROMs
 # Logger.ps1
 #
 # El log guarda TODO lo que se ve en pantalla (escaneo,
@@ -30,7 +30,7 @@ function Start-Log {
     $script:LogFile = Join-Path $logFolder "CleanROMs_$date.log"
 
     Write-Log "==========================================="
-    Write-Log "CleanROMs v2.7"
+    Write-Log "CleanROMs v$($Global:AppVersion)"
     Write-Log "Inicio : $(Get-Date)"
     Write-Log "==========================================="
 

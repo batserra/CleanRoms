@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# CleanROMs v2.7
+# CleanROMs
 #
 # MediaCleaner.ps1
 #
@@ -157,8 +157,20 @@ function Invoke-OrphanedMediaCleanup {
 
     param(
         [Parameter(Mandatory)]
-        [string[]]$SystemFolders
+        [string[]]$SystemFolders,
+
+        #
+        # Carpeta del programa (donde esta Resultado\CleanPlan.json).
+        # Si no se indica se deduce de la ubicacion de este modulo.
+        #
+
+        [string]$Root = ""
     )
+
+    if([string]::IsNullOrWhiteSpace($Root))
+    {
+        $Root = Split-Path $PSScriptRoot -Parent
+    }
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
@@ -227,42 +239,82 @@ function Invoke-OrphanedMediaCleanup {
     $skippedCount = 0
     $previewedCount = 0
 
-    foreach($orphan in $allOrphans)
+    #
+    # Cada medio que se mueve se anota en el plan (Resultado\CleanPlan.json)
+    # como un MOVE mas, igual que las ROMs: asi "Deshacer la ultima
+    # limpieza" tambien devuelve las imagenes, los videos y los manuales.
+    # Antes se movian "sin apuntar" y Deshacer no los recuperaba.
+    #
+    # El registro va en un finally: aunque algo falle a mitad, lo que ya
+    # se movio queda anotado y se puede deshacer.
+    #
+
+    $planEntries = @()
+
+    try
     {
-        $target = Get-OrphanedMediaTargetFolder -Orphan $orphan
-
-        if(!(Test-Path -LiteralPath $orphan.Source))
+        foreach($orphan in $allOrphans)
         {
-            $skippedCount++
-            continue
+            $target = Get-OrphanedMediaTargetFolder -Orphan $orphan
+
+            if(!(Test-Path -LiteralPath $orphan.Source))
+            {
+                $skippedCount++
+                continue
+            }
+
+            $destination = Join-Path $target $orphan.FileName
+
+            if(Test-Path -LiteralPath $destination)
+            {
+                Write-Host (T "media.alreadyBackedUp" $destination) -ForegroundColor Yellow
+                $skippedCount++
+                continue
+            }
+
+            if($Global:Settings.PreviewOnly)
+            {
+                Write-Host (T "exec.previewMove" $orphan.Source) -ForegroundColor DarkYellow
+                $previewedCount++
+                continue
+            }
+
+            try
+            {
+                if(!(Test-Path -LiteralPath $target))
+                {
+                    New-Item -ItemType Directory -Path $target -Force | Out-Null
+                }
+
+                Move-Item -LiteralPath $orphan.Source -Destination $destination -ErrorAction Stop
+            }
+            catch
+            {
+                Write-Warning (T "media.failed" @($orphan.Source, $_.Exception.Message))
+
+                $skippedCount++
+                $Global:ActionErrorCount = [int]$Global:ActionErrorCount + 1
+
+                continue
+            }
+
+            Write-Host (T "media.moved" $orphan.Source) -ForegroundColor Yellow
+
+            $movedCount++
+
+            # Hash "N/A": no hace falta hashear miles de imagenes y videos
+            $planEntries += New-CleanAction `
+                -Action "MOVE" `
+                -Rom (New-RomObject -Title ([System.IO.Path]::GetFileNameWithoutExtension($orphan.FileName)) -NormalizedTitle "" -FullPath $orphan.Source) `
+                -Target $target `
+                -Reason (T "media.reason" $orphan.MediaType) `
+                -Hash "N/A" `
+                -System $orphan.System
         }
-
-        $destination = Join-Path $target $orphan.FileName
-
-        if(Test-Path -LiteralPath $destination)
-        {
-            Write-Host (T "media.alreadyBackedUp" $destination) -ForegroundColor Yellow
-            $skippedCount++
-            continue
-        }
-
-        if($Global:Settings.PreviewOnly)
-        {
-            Write-Host (T "exec.previewMove" $orphan.Source) -ForegroundColor DarkYellow
-            $previewedCount++
-            continue
-        }
-
-        if(!(Test-Path -LiteralPath $target))
-        {
-            New-Item -ItemType Directory -Path $target -Force | Out-Null
-        }
-
-        Move-Item -LiteralPath $orphan.Source -Destination $destination
-
-        Write-Host (T "media.moved" $orphan.Source) -ForegroundColor Yellow
-
-        $movedCount++
+    }
+    finally
+    {
+        Add-CleanPlanEntries -Root $Root -NewActions $planEntries
     }
 
     Write-Host ""
@@ -279,4 +331,9 @@ function Invoke-OrphanedMediaCleanup {
     Write-Host ""
     Write-Host (T "media.nothingDeleted")
     Write-Host (T "media.nothingDeletedFull" $Global:DuplicatesFolder)
+
+    if($movedCount -gt 0)
+    {
+        Write-Host (T "media.undoable")
+    }
 }

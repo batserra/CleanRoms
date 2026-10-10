@@ -1,6 +1,6 @@
 ﻿# ============================================================
 #
-# CleanROMs v2.7
+# CleanROMs
 #
 # RomScanner.ps1
 #
@@ -17,7 +17,7 @@ function Get-RomFiles {
 
     if(-not (Test-Path -LiteralPath $Folder))
     {
-        throw "La carpeta no existe: $Folder"
+        throw (T "scan.folderMissing" $Folder)
     }
 
 $extensions = $Global:RomExtensions
@@ -37,7 +37,7 @@ $ignoredFolders = $Global:IgnoredFolders
 
         Where-Object {
 
-            $parts = $_.DirectoryName.Split('\')
+            $parts = $_.DirectoryName -split '[\\/]'
 
             -not ($parts | Where-Object {
                 $ignoredFolders -contains $_
@@ -97,8 +97,8 @@ function Scan-Roms {
         if(($index % 250) -eq 0 -or $index -eq $total)
         {
             Write-Progress `
-                -Activity "Analizando ROMs" `
-                -Status "$index de $total" `
+                -Activity (T "scan.progress") `
+                -Status (T "progress.status" @($index, $total)) `
                 -PercentComplete (($index / $total) * 100)
         }
 
@@ -110,7 +110,7 @@ function Scan-Roms {
         }
     }
 
-    Write-Progress -Activity "Analizando ROMs" -Completed
+    Write-Progress -Activity (T "scan.progress") -Completed
 
     $sw.Stop()
 

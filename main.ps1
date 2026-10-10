@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# CleanROMs v2.7
+# CleanROMs
 #
 # Main.ps1
 # ============================================================
@@ -22,13 +22,17 @@ param(
     #   All     -> igual que la opción 4 (todo)
     #   Undo    -> igual que la opción 2 (deshacer la última
     #              limpieza; -System se ignora en este caso)
+    #   Purge   -> igual que la opción 6: BORRA de _duplicates las
+    #              copias que llevan -OlderThanDays días o más (lo
+    #              único que el programa borra de verdad; sin
+    #              -Yes pregunta antes; -System se ignora)
     #
     # Si no se indica ningún valor, se ignoran también -System,
     # -Yes y -PreviewOnly, y el programa arranca exactamente igual
     # que siempre (menú interactivo).
     #
 
-    [ValidateSet("Clean", "Orphans", "All", "Undo")]
+    [ValidateSet("Clean", "Orphans", "All", "Undo", "Purge")]
     [string]$Action = $null,
 
     #
@@ -47,7 +51,17 @@ param(
     # verdad.
     #
 
-    [switch]$PreviewOnly
+    [switch]$PreviewOnly,
+
+    #
+    # Solo para -Action Purge: se borran las copias de _duplicates
+    # que llevan este número de días o más desde que se movieron.
+    # Si no se indica, se usa PurgeDuplicatesAfterDays de
+    # Config\Settings.ps1 (90 por defecto).
+    #
+
+    [ValidateRange(1, 3650)]
+    [int]$OlderThanDays = 0
 
 )
 
@@ -70,6 +84,20 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 #
 
 $Global:AutoConfirm = [bool]$Yes
+
+#
+# Cuenta las acciones que fallaron durante la ejecucion (un MOVE que
+# lanzo una excepcion, un archivo asociado que no se pudo mover...).
+# En modo no interactivo, si es mayor que 0 el programa termina con
+# codigo de salida 2 para que el Programador de tareas lo vea.
+#
+# Codigos de salida en modo no interactivo (-Action):
+#   0 = todo correcto
+#   1 = error inesperado (ver crash_log.txt) o argumentos no validos
+#   2 = terminó, pero alguna accion fallo (ver el log)
+#
+
+$Global:ActionErrorCount = 0
 
 Initialize-Language -Root $Root
 Initialize-RomPriorityLanguage -Root $Root
@@ -100,7 +128,7 @@ if($Global:AutoConfirm -and [string]::IsNullOrWhiteSpace($Global:RetroBatRoot))
 #=========================================================
 
 . "$Root\Modules\Menu.ps1"
-. "$Root\Modules\Logger.ps1"
+. "$Root\Modules\logger.ps1"
 . "$Root\Modules\RomParser.ps1"
 . "$Root\Modules\RomScanner.ps1"
 . "$Root\Modules\TitleNormalizer.ps1"
@@ -113,6 +141,11 @@ if($Global:AutoConfirm -and [string]::IsNullOrWhiteSpace($Global:RetroBatRoot))
 . "$Root\Modules\UndoManager.ps1"
 . "$Root\Modules\MediaCleaner.ps1"
 . "$Root\Modules\HackOrganizer.ps1"
+. "$Root\Modules\GamelistManager.ps1"
+. "$Root\Modules\Overrides.ps1"
+. "$Root\Modules\RomSets.ps1"
+. "$Root\Modules\HashCache.ps1"
+. "$Root\Modules\DuplicatesPurger.ps1"
 
 
 
@@ -137,7 +170,7 @@ if(![string]::IsNullOrWhiteSpace($Action))
 
     $systemFolders = @()
 
-    if($Action -ne "Undo")
+    if($Action -ne "Undo" -and $Action -ne "Purge")
     {
         if([string]::IsNullOrWhiteSpace($System) -or $System -ieq "ALL")
         {
@@ -171,13 +204,13 @@ if(![string]::IsNullOrWhiteSpace($Action))
 
         "Orphans"
         {
-            Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+            Invoke-OrphanedMediaCleanup -Root $Root -SystemFolders $systemFolders
         }
 
         "All"
         {
             Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
-            Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+            Invoke-OrphanedMediaCleanup -Root $Root -SystemFolders $systemFolders
             Invoke-HackOrganizer -Root $Root -SystemFolders $systemFolders
         }
 
@@ -185,10 +218,22 @@ if(![string]::IsNullOrWhiteSpace($Action))
         {
             Invoke-UndoLastPlan -Root $Root
         }
+
+        "Purge"
+        {
+            $null = Invoke-DuplicatesPurge -Root $Root -Days $OlderThanDays
+        }
+    }
+
+    $exitCode = 0
+
+    if($Global:ActionErrorCount -gt 0)
+    {
+        $exitCode = 2
     }
 
     Stop-Log
-    exit 0
+    exit $exitCode
 }
 
 :mainLoop
@@ -199,7 +244,7 @@ Show-Banner
 
 $mainAction = Select-MainAction
 
-if($mainAction -eq 6)
+if($mainAction -eq 7)
 {
     break mainLoop
 }
@@ -259,7 +304,7 @@ switch($mainAction)
             $systemFolders = @(Get-SystemFolder $system)
         }
 
-        Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+        Invoke-OrphanedMediaCleanup -Root $Root -SystemFolders $systemFolders
     }
 
     4
@@ -276,7 +321,7 @@ switch($mainAction)
 
         Invoke-RomCleaning -Root $Root -SystemFolders $systemFolders
 
-        Invoke-OrphanedMediaCleanup -SystemFolders $systemFolders
+        Invoke-OrphanedMediaCleanup -Root $Root -SystemFolders $systemFolders
 
         Invoke-HackOrganizer -Root $Root -SystemFolders $systemFolders
     }
@@ -285,6 +330,13 @@ switch($mainAction)
     {
         Show-ConfigMenu -Root $Root
         continue mainLoop
+    }
+
+    6
+    {
+        $purgeDays = Read-PurgeDays
+
+        $null = Invoke-DuplicatesPurge -Root $Root -Days $purgeDays
     }
 
 }
@@ -324,9 +376,21 @@ $($_.ScriptStackTrace)
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Red
-    Write-Host "Se ha producido un error inesperado." -ForegroundColor Red
-    Write-Host "Detalles guardados en: $crashLog" -ForegroundColor Red
+    Write-Host (T "main.crash") -ForegroundColor Red
+    Write-Host (T "main.crashDetails" $crashLog) -ForegroundColor Red
     Write-Host "==========================================" -ForegroundColor Red
+
+    #
+    # En modo no interactivo el fallo debe ser visible para quien
+    # lanzo el programa (Programador de tareas, scripts...): se sale
+    # con codigo 1 en vez de seguir y terminar "con exito".
+    #
+
+    if($Global:AutoConfirm)
+    {
+        Stop-Log
+        exit 1
+    }
 }
 finally
 {
@@ -335,6 +399,8 @@ finally
     # inesperado), la transcripción del log se cierra siempre
     # aquí, para que el archivo nunca se quede abierto/bloqueado.
     #
+
+    Save-HashCache
 
     Stop-Log
 }

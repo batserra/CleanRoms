@@ -170,7 +170,10 @@ function New-TestRom {
 
 function New-TestTempFolder {
 
-    $folder = Join-Path $env:TEMP ("CleanRoms_Test_" + [guid]::NewGuid())
+    # $env:TEMP solo existe en Windows; GetTempPath() vale en todos los sitios
+    $tempBase = if($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
+
+    $folder = Join-Path $tempBase ("CleanRoms_Test_" + [guid]::NewGuid())
 
     New-Item -ItemType Directory -Path $folder -Force | Out-Null
 

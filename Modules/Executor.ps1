@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# CleanROMs v2.7
+# CleanROMs
 #
 # Executor.ps1
 #
@@ -54,8 +54,8 @@ foreach($action in $Plan.Actions)
 }
 
     Write-Progress `
-        -Activity "Ejecutando plan" `
-        -Status "$index de $total" `
+        -Activity (T "exec.progress") `
+        -Status (T "progress.status" @($index, $total)) `
         -PercentComplete (($index / $total) * 100)
 
      try
@@ -78,6 +78,8 @@ foreach($action in $Plan.Actions)
         Write-Warning $_
 
         Write-Log "ERROR: $($_.Exception.Message)"
+
+        $Global:ActionErrorCount = [int]$Global:ActionErrorCount + 1
     }
 }
 
@@ -124,7 +126,7 @@ Write-Host "==========================================" -ForegroundColor Cyan
 
 
 Write-Progress `
-    -Activity "Ejecutando plan" `
+    -Activity (T "exec.progress") `
     -Completed
 
     Write-Host ""
@@ -168,7 +170,7 @@ function Invoke-CleanAction {
 
         default
         {
-            throw "Acción desconocida: $($Action.Action)"
+            throw (T "exec.unknownAction" $Action.Action)
         }
 
     }

@@ -19,7 +19,16 @@
 # explícito en vez de adivinarlo a partir de la ruta.
 # ============================================================
 
-$Global:RetroBatRoot = "C:\RetroBat\roms"
+#
+# Ruta de RetroBat portable (antes "C:\RetroBat\roms", que en Linux
+# da "Cannot find drive" y rompia este test y los siguientes, porque
+# ademas el valor se quedaba cambiado al terminar).
+#
+
+$originalRoot = $Global:RetroBatRoot
+$originalDuplicatesFolder = $Global:DuplicatesFolder
+
+$Global:RetroBatRoot = Join-Path (Join-Path ([System.IO.Path]::GetTempPath()) "RetroBat_Fake") "roms"
 $Global:DuplicatesFolder = "_duplicates"
 
 #
@@ -43,7 +52,7 @@ Assert-Equal `
 # subcarpeta de hacks.
 #
 
-$hacksFolder = "C:\RetroBat\roms\SNES\# Hacks y Otros #"
+$hacksFolder = Join-Path (Join-Path $Global:RetroBatRoot "SNES") "# Hacks y Otros #"
 
 $systemNameComoLoCalculaHackOrganizer = Split-Path (Split-Path $hacksFolder -Parent) -Leaf
 
@@ -58,3 +67,6 @@ Assert-Equal `
     (Join-Path $Global:RetroBatRoot (Join-Path $Global:DuplicatesFolder "SNES")) `
     $target `
     "BUG: los duplicados de '# Hacks y Otros #' deben ir a _duplicates\SNES, no a _duplicates\# Hacks y Otros #"
+
+$Global:RetroBatRoot = $originalRoot
+$Global:DuplicatesFolder = $originalDuplicatesFolder
