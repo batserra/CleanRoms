@@ -1,3 +1,5 @@
+[English](README.md) | [Español](README_ES.md)
+
 CleanROMs v2.8
 ==============
 
