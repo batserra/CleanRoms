@@ -1,10 +1,12 @@
-CleanROMs v2.7
+CleanROMs v2.8
 ==============
 
 A PowerShell command-line tool that finds duplicate ROMs inside a RetroBat
 installation, automatically keeps the best copy of each game, and moves the
-rest to a backup folder (it never deletes anything). It can also clean up
-orphaned images, videos, and manuals left behind by removed ROMs.
+rest to a backup folder (it never deletes anything on its own; only an
+optional purge that you start yourself removes old copies, and it asks
+first). It can also clean up orphaned images, videos, and manuals left
+behind by removed ROMs.
 
 
 What it does
@@ -131,6 +133,46 @@ configuration reference, supported systems, and real test results are
 included in the repository.
 
 
+What's new in 2.8
+------------------
+Everything below is described in detail in its own section further down.
+
+- Multi-file games (.cue/.bin, .gdi, several discs, .m3u) are now handled as
+  ONE unit. Before, a .cue and its .bin looked like copies of each other and
+  one was moved, and the discs of a game looked like duplicates of each other.
+- "Undo the last cleanup" now also restores the orphaned images, videos and
+  manuals; it undoes moves from last to first (a hack moved twice in one
+  session returns to its original folder); and a file that can't be restored
+  no longer stops the rest.
+- RetroBat's gamelist.xml: favorites, play counts, last-played dates and
+  ratings of a moved duplicate are carried over to the ROM that stays (also
+  for exact duplicate hacks), and the entries of hacks organized into
+  "# Hacks y Otros #" follow the files to their new path.
+- Manual decisions that stick (Config\Overrides.json): "Prefer" a specific
+  ROM or "Ignore" a group, and the program offers to remember your tie-break
+  answers.
+- Hash cache (Resultado\HashCache.tsv): unchanged files are not hashed again;
+  deduplicating hacks skips files whose size is unique.
+- Purge of _duplicates (menu option 6 or -Action Purge): deletes copies that
+  have been there N days or more. It is the only thing that ever deletes
+  files, and it always shows the list and asks first. The menu now has 7
+  options.
+- Systems, ROM extensions and ignored folders moved from Settings.ps1 to
+  Config\Systems.json and Config\Extensions.json, with optional *.custom.json
+  files for your own additions.
+- Exit codes for scheduled tasks (0 = fine, 1 = error, 2 = some action
+  failed) and no waiting for a key at the end in unattended mode.
+- The version number lives in one file (VERSION); Tools\Build-Release.ps1 and
+  a GitHub workflow build and publish the release ZIP.
+- Every on-screen message now comes from Strings.ps1 in Spanish and English.
+- Automated tests and CI: Run-AllTests.ps1 (it now fails with exit code 1 when
+  a test fails), Check-Project.ps1, Smoke-Unattended.ps1, and a GitHub
+  Actions workflow on Windows and Linux. Writing them uncovered and fixed
+  several real bugs (described in the sections below).
+
+(Version 2.7 had no notes in this README.)
+
+
 What's new in 2.6
 ------------------
 - ROM version and revision (V1.1, Rev A...) are now actually detected
@@ -154,7 +196,7 @@ What's new in 2.6
   associated files (save files, controller configs) moved along with a
   ROM, not just the ROM itself.
 - New command-line parameters on main.ps1 for scheduled/unattended runs
-  (Windows Task Scheduler and similar): -Action Clean|Orphans|All|Undo|Purge,
+  (Windows Task Scheduler and similar): -Action Clean|Orphans|All|Undo,
   -System <folder>, -Yes (auto-confirm every prompt), -PreviewOnly. See
   "Command-line / scheduled use" below. Running main.ps1 with no
   parameters works exactly as before.

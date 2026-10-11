@@ -23,6 +23,32 @@ $Global:Settings.Language = "es"
 Assert-Equal $true ((T "banner.title" $Global:AppVersion) -like "*v$expectedVersion*") "Version: el banner del menu muestra la version"
 
 #
+# Los README y el manual muestran la version actual (antes se quedaron
+# en 2.7 cuando el programa ya era 2.8)
+#
+
+foreach($readme in "README.md", "README_ES.md")
+{
+    $first = (Get-Content -LiteralPath (Join-Path $Root $readme) -TotalCount 1).Trim()
+    Assert-Equal "CleanROMs v$expectedVersion" $first "Version: la primera linea de $readme es 'CleanROMs v$expectedVersion'"
+}
+
+foreach($manual in @(@("manual_en.json", "Version"), @("manual_es.json", "Versión")))
+{
+    $manualPath = Join-Path (Join-Path $Root "ManualSrc") $manual[0]
+
+    # ManualSrc es solo para regenerar los PDF: puede no estar (se puede borrar)
+    if(Test-Path -LiteralPath $manualPath)
+    {
+        $json = Get-Content -LiteralPath $manualPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $subtitle = @($json | Where-Object { $_.type -eq "subtitle" })[0]
+        $subtitleText = (@($subtitle.runs | ForEach-Object { $_[1] }) -join "")
+
+        Assert-Equal $true ($subtitleText -like "*$($manual[1]) $expectedVersion*") "Version: la portada de $($manual[0]) dice '$($manual[1]) $expectedVersion' (dice: $subtitleText)"
+    }
+}
+
+#
 # Ninguna version "pegada" en el codigo
 #
 

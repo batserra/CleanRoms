@@ -1,11 +1,13 @@
-CleanROMs v2.7
+CleanROMs v2.8
 ==============
 
 Una herramienta de línea de comandos (PowerShell) que detecta ROMs
 duplicadas dentro de una instalación de RetroBat, conserva
 automáticamente la mejor copia de cada juego, y mueve el resto a una
-carpeta de respaldo (nunca borra nada). También puede limpiar imágenes,
-vídeos y manuales huérfanos que hayan quedado de ROMs ya eliminadas.
+carpeta de respaldo (no borra nada por su cuenta; solo una purga opcional
+que tú mismo lanzas elimina copias antiguas, y antes te pregunta).
+También puede limpiar imágenes, vídeos y manuales huérfanos que hayan
+quedado de ROMs ya eliminadas.
 
 
 Qué hace
@@ -147,6 +149,47 @@ referencia de configuración, los sistemas soportados, y resultados de
 pruebas reales, están incluidos en el repositorio.
 
 
+Novedades de la 2.8
+---------------------
+Todo lo que sigue se explica con detalle en su propia sección más abajo.
+
+- Los juegos de varios ficheros (.cue/.bin, .gdi, varios discos, .m3u) se
+  tratan ahora como UNA unidad. Antes, un .cue y su .bin parecían copias uno
+  del otro y se movía uno de los dos, y los discos de un juego parecían
+  duplicados entre sí.
+- "Deshacer la última limpieza" ahora también devuelve las imágenes, vídeos
+  y manuales huérfanos; deshace los movimientos del último al primero (un
+  hack movido dos veces en una sesión vuelve a su carpeta original); y un
+  archivo que no se pueda restaurar ya no detiene al resto.
+- El gamelist.xml de RetroBat: los favoritos, veces jugadas, fechas de
+  última partida y notas de un duplicado movido pasan a la ROM que se queda
+  (también en los hacks duplicados exactos), y las entradas de los hacks
+  organizados en "# Hacks y Otros #" siguen a los archivos a su nueva ruta.
+- Decisiones manuales que se recuerdan (Config\Overrides.json): "Prefer"
+  para fijar una ROM o "Ignore" para dejar un grupo intacto, y el programa
+  ofrece recordar tus respuestas en los empates.
+- Caché de hashes (Resultado\HashCache.tsv): los archivos que no han
+  cambiado no se vuelven a hashear; al deduplicar hacks se saltan los
+  archivos de tamaño único.
+- Purga de _duplicates (opción 6 del menú o -Action Purge): borra las copias
+  que llevan allí N días o más. Es lo único que borra archivos de verdad, y
+  siempre enseña la lista y pregunta antes. El menú pasa a tener 7 opciones.
+- Los sistemas, las extensiones de ROM y las carpetas ignoradas pasan de
+  Settings.ps1 a Config\Systems.json y Config\Extensions.json, con archivos
+  *.custom.json opcionales para tus propias adiciones.
+- Códigos de salida para tareas programadas (0 = bien, 1 = error, 2 = alguna
+  acción falló) y sin esperar una tecla al terminar en modo desatendido.
+- El número de versión vive en un único archivo (VERSION); Tools\Build-Release.ps1
+  y un flujo de GitHub generan y publican el ZIP de la versión.
+- Todos los mensajes en pantalla salen ahora de Strings.ps1 en español e inglés.
+- Pruebas automáticas e integración continua: Run-AllTests.ps1 (ahora falla
+  con código 1 si una prueba falla), Check-Project.ps1, Smoke-Unattended.ps1
+  y un flujo de GitHub Actions en Windows y Linux. Escribirlas permitió
+  encontrar y corregir varios fallos reales (descritos en las secciones de abajo).
+
+(La versión 2.7 no tenía notas en este README.)
+
+
 Novedades de la 2.6
 ---------------------
 - La versión y la revisión de la ROM (V1.1, Rev A...) ahora se detectan
@@ -173,7 +216,7 @@ Novedades de la 2.6
   de mando) que se hubieran movido junto con una ROM, no solo la ROM.
 - Nuevos parámetros de línea de comandos en main.ps1 para ejecuciones
   programadas/desatendidas (Programador de tareas de Windows y
-  similares): -Action Clean|Orphans|All|Undo|Purge, -System <carpeta>, -Yes
+  similares): -Action Clean|Orphans|All|Undo, -System <carpeta>, -Yes
   (confirma automáticamente cada pregunta), -PreviewOnly. Ver "Uso por
   línea de comandos / tareas programadas" más abajo. Ejecutar main.ps1
   sin parámetros funciona exactamente igual que siempre.
