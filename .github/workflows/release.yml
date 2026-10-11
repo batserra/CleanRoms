@@ -1,0 +1,57 @@
+# CleanROMs - publicacion de una version
+#
+# Al subir una etiqueta "v<VERSION>" (por ejemplo v2.8, donde 2.8 es lo
+# que dice el archivo VERSION):
+#   1. Comprueba que la etiqueta coincide con VERSION.
+#   2. Pasa las comprobaciones y los tests.
+#   3. Crea CleanRoms-v<VERSION>.zip (todo dentro de una carpeta con la
+#      version, sin archivos personales) y su .sha256.
+#   4. Publica una Release en GitHub con el ZIP adjunto.
+#
+# Para publicar:
+#   git tag v2.8
+#   git push origin v2.8
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publicar ${{ github.ref_name }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Comprobar el proyecto
+        shell: pwsh
+        run: ./Tests/Check-Project.ps1
+
+      - name: Suite de tests
+        shell: pwsh
+        run: ./Tests/Run-AllTests.ps1
+
+      - name: Prueba de humo del modo desatendido
+        shell: pwsh
+        run: ./Tests/Smoke-Unattended.ps1
+
+      - name: Crear el ZIP (comprueba que la etiqueta coincide con VERSION)
+        shell: pwsh
+        run: ./Tools/Build-Release.ps1 -Tag "${{ github.ref_name }}"
+
+      - name: Publicar la Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/CleanRoms-*.zip
+            dist/CleanRoms-*.zip.sha256
+          generate_release_notes: true
