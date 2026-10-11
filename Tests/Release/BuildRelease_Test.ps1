@@ -61,7 +61,7 @@ try
 
     Assert-Equal 0 @($names | Where-Object { -not $_.StartsWith($prefix) }).Count "Release: todo va dentro de la carpeta con la version"
 
-    foreach($must in "main.ps1", "VERSION", "Config/Systems.json", "Config/Extensions.json", "Config/Strings.ps1", "Modules/UndoManager.ps1", "README.md", "Run CleanROMs.bat")
+    foreach($must in "main.ps1", "VERSION", "Config/Systems.json", "Config/Extensions.json", "Config/Strings.ps1", "Modules/UndoManager.ps1", "README.md", "CleanROMs.bat")
     {
         Assert-Equal $true ($names -contains ($prefix + $must)) "Release: incluye $must"
     }

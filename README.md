@@ -51,7 +51,7 @@ Requirements
 Installation
 ------------
 Copy the whole "CleanRoms" folder inside the "roms" folder of your RetroBat
-installation. Then double-click "Run CleanROMs.bat".
+installation. Then double-click "CleanROMs.bat".
 
 That launcher unblocks every file in the folder and starts main.ps1 for
 you, avoiding a common first-run error where Windows refuses to run
@@ -167,6 +167,8 @@ Everything below is described in detail in its own section further down.
 - The version number lives in one file (VERSION); Tools\Build-Release.ps1 and
   a GitHub workflow build and publish the release ZIP.
 - Every on-screen message now comes from Strings.ps1 in Spanish and English.
+- The launcher "Run CleanROMs.bat" is now simply "CleanROMs.bat" (if you made
+  a shortcut to the old name, point it to the new one).
 - Automated tests and CI: Run-AllTests.ps1 (it now fails with exit code 1 when
   a test fails), Check-Project.ps1, Smoke-Unattended.ps1, and a GitHub
   Actions workflow on Windows and Linux. Writing them uncovered and fixed
@@ -188,9 +190,9 @@ What's new in 2.6
 - The confirmation prompt for moving duplicate hacks now explains that
   these are byte-identical files. (Earlier it also said this step could
   not be undone; that was outdated: it can, see below.)
-- Added "Run CleanROMs.bat", a launcher that unblocks the folder and
-  starts the program so first-time users don't hit the "not digitally
-  signed" PowerShell error.
+- Added "CleanROMs.bat" (called "Run CleanROMs.bat" in earlier versions), a
+  launcher that unblocks the folder and starts the program so first-time
+  users don't hit the "not digitally signed" PowerShell error.
 - "Undo the last cleanup" can now undo more than just the very last run:
   every completed session is archived to Resultado\History\, and the
   menu lets you pick an older one (keeps the last 10 by default, see

@@ -1,6 +1,5 @@
 [English](README.md) | [Español](README_ES.md)
 
-
 CleanROMs v2.8
 ==============
 
@@ -55,7 +54,7 @@ Requisitos
 Instalación
 -----------
 Copia la carpeta completa "CleanRoms" dentro de la carpeta "roms" de tu
-instalación de RetroBat. Después, haz doble clic en "Run CleanROMs.bat".
+instalación de RetroBat. Después, haz doble clic en "CleanROMs.bat".
 
 Ese lanzador desbloquea todos los archivos de la carpeta y arranca
 main.ps1 por ti, evitando un error habitual en la primera ejecución en
@@ -185,6 +184,8 @@ Todo lo que sigue se explica con detalle en su propia sección más abajo.
 - El número de versión vive en un único archivo (VERSION); Tools\Build-Release.ps1
   y un flujo de GitHub generan y publican el ZIP de la versión.
 - Todos los mensajes en pantalla salen ahora de Strings.ps1 en español e inglés.
+- El lanzador "Run CleanROMs.bat" pasa a llamarse simplemente "CleanROMs.bat"
+  (si creaste un acceso directo al nombre antiguo, apúntalo al nuevo).
 - Pruebas automáticas e integración continua: Run-AllTests.ps1 (ahora falla
   con código 1 si una prueba falla), Check-Project.ps1, Smoke-Unattended.ps1
   y un flujo de GitHub Actions en Windows y Linux. Escribirlas permitió
@@ -207,10 +208,10 @@ Novedades de la 2.6
 - La pregunta de confirmación al mover hacks duplicados ahora explica
   que son archivos idénticos byte a byte. (Antes añadía que este paso no
   se podía deshacer; estaba desfasado: sí se puede, ver más abajo.)
-- Añadido "Run CleanROMs.bat", un lanzador que desbloquea la carpeta y
-  arranca el programa para que quien lo use por primera vez no se
-  encuentre con el error de "no está firmado digitalmente" de
-  PowerShell.
+- Añadido "CleanROMs.bat" (se llamaba "Run CleanROMs.bat" en versiones
+  anteriores), un lanzador que desbloquea la carpeta y arranca el programa
+  para que quien lo use por primera vez no se encuentre con el error de
+  "no está firmado digitalmente" de PowerShell.
 - "Deshacer la última limpieza" ya no se limita a la última ejecución:
   cada sesión completada se archiva en Resultado\History\, y el menú
   permite elegir una anterior (se conservan las últimas 10 por defecto,

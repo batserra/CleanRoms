@@ -29,8 +29,14 @@ Assert-Equal $true ((T "banner.title" $Global:AppVersion) -like "*v$expectedVers
 
 foreach($readme in "README.md", "README_ES.md")
 {
-    $first = (Get-Content -LiteralPath (Join-Path $Root $readme) -TotalCount 1).Trim()
-    Assert-Equal "CleanROMs v$expectedVersion" $first "Version: la primera linea de $readme es 'CleanROMs v$expectedVersion'"
+    $head = @(Get-Content -LiteralPath (Join-Path $Root $readme) -TotalCount 6)
+
+    # La primera linea es el selector de idioma ("[English](README.md) | [Español](README_ES.md)");
+    # el titulo viene justo despues
+    $title = @($head | Where-Object { $_ -like "CleanROMs v*" })[0]
+
+    Assert-Equal "CleanROMs v$expectedVersion" $title "Version: el titulo de $readme es 'CleanROMs v$expectedVersion'"
+    Assert-Equal "[English](README.md) | [Español](README_ES.md)" $head[0].Trim() "Idioma: la primera linea de $readme es el selector English | Español"
 }
 
 foreach($manual in @(@("manual_en.json", "Version"), @("manual_es.json", "Versión")))
