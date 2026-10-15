@@ -51,6 +51,20 @@ if %errorlevel%==0 (
 )
 
 "%PWSH_EXE%" -NoLogo -ExecutionPolicy Bypass -File "%ROOT%main.ps1"
+set "EXITCODE=%errorlevel%"
 
-echo.
-pause
+rem  [EN] Normal exit (option 7 of the menu): the window closes right away.
+rem       Only if the program ended with an error does it wait for a key,
+rem       so the message can be read before the window disappears.
+rem  [ES] Salida normal (opcion 7 del menu): la ventana se cierra al
+rem       momento. Solo si el programa termino con un error espera una
+rem       tecla, para poder leer el mensaje antes de que se cierre.
+if not "%EXITCODE%"=="0" (
+    echo.
+    echo [EN] The program ended with an error ^(code %EXITCODE%^).
+    echo [ES] El programa termino con un error ^(codigo %EXITCODE%^).
+    echo.
+    pause
+)
+
+exit /b %EXITCODE%

@@ -26,7 +26,18 @@
     "Mattel Intellivision": "intellivision",
     "GCE Vectrex": "vectrex",
     "Panasonic 3DO": "3do",
-    "Philips CD-i": "cdi"
+    "Philips CD-i": "cdi",
+    "Sega 32X": "sega32x",
+    "Atari 5200": "atari5200",
+    "Magnavox Odyssey²": "odyssey2",
+    "Philips Videopac": "videopac",
+    "NEC SuperGrafx": "supergrafx",
+    "NEC PC Engine CD / TurboGrafx-CD": "pcenginecd",
+    "SNK Neo Geo CD": "neogeocd",
+    "Pioneer LaserActive": "laseractive",
+    "Nintendo Virtual Boy": "virtualboy",
+    "Nintendo 64 Disk Drive (64DD)": "n64dd",
+    "Bandai SuFami Turbo": "sufami"
   },
   "Consolas Portátiles": {
     "Nintendo Game Boy (GB)": "gb",
@@ -40,7 +51,8 @@
     "Atari Lynx": "lynx",
     "SNK Neo Geo Pocket / Color": "ngpc",
     "Bandai WonderSwan / Color": "wonderswan",
-    "Watara Supervision": "supervision"
+    "Watara Supervision": "supervision",
+    "Nintendo Pokémon Mini": "pokemini"
   },
   "Microordenadores": {
     "Amstrad CPC": "amstradcpc",
@@ -55,7 +67,13 @@
     "PC DOS": "dos",
     "Sharp X68000": "x68000",
     "NEC PC-9801": "pc98",
-    "Thomson MO/TO": "thomson"
+    "Thomson MO/TO": "thomson",
+    "Apple IIGS": "apple2gs",
+    "Coleco Adam": "adam",
+    "Commodore VIC-20": "vic20",
+    "Sinclair ZX81": "zx81",
+    "Commodore Amiga CD32": "amigacd32",
+    "Commodore Amiga CDTV": "amigacdtv"
   },
   "Sistemas Arcade": {
     "Capcom Play System I (CPS1)": "cps1",
@@ -68,6 +86,33 @@
     "Sega Naomi / Naomi 2": "naomi",
     "Sega Model 2": "model2",
     "Sega Model 3": "model3",
-    "LaserDisc (Daphne / Singe)": "daphne"
+    "LaserDisc (Daphne / Singe)": "daphne",
+    "CAVE": "cave",
+    "Gaelco PowerVR": "gaelco",
+    "MAME Homebrew (HBMAME)": "hbmame",
+    "Sega Chihiro": "chihiro",
+    "Sega Hikaru": "hikaru",
+    "Sega Naomi 2": "naomi2",
+    "Sega Naomi GD-ROM": "naomigd",
+    "Sega Triforce": "triforce",
+    "Singe (LaserDisc)": "singe",
+    "ActionMax (LaserDisc)": "actionmax"
+  },
+  "Motores de juego y otros": {
+    "ScummVM": "scummvm",
+    "LÖVE": "love",
+    "OpenBOR": "openbor",
+    "PICO-8": "pico8",
+    "TIC-80": "tic80",
+    "Java 2 Micro Edition (J2ME)": "j2me",
+    "Adobe Flash": "flash"
+  },
+  "Nombres de carpeta alternativos (RetroBat 8.x)": {
+    "Atari Jaguar (carpeta jaguar)": "jaguar",
+    "ColecoVision (carpeta colecovision)": "colecovision",
+    "Atari Lynx (carpeta atarilynx)": "atarilynx",
+    "Nintendo 3DS (carpeta 3ds)": "3ds",
+    "Amstrad GX4000 (carpeta amstradgx4000)": "amstradgx4000",
+    "SNK Neo Geo Pocket (carpeta ngp)": "ngp"
   }
 }

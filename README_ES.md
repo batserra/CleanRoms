@@ -17,7 +17,7 @@ Qué hace
 Para cada carpeta de sistema que elijas:
 
 1. La escanea buscando archivos con extensión de ROM reconocida (más de
-   110 extensiones, más de 60 sistemas soportados: Nintendo, Sega, Sony,
+   170 extensiones, más de 100 sistemas soportados: Nintendo, Sega, Sony,
    arcade, microordenadores...).
 2. Analiza cada nombre de archivo (y, si es un .zip/.7z con una sola ROM
    dentro, también el nombre del archivo interno) para extraer región,
@@ -161,8 +161,10 @@ Todo lo que sigue se explica con detalle en su propia sección más abajo.
   duplicados entre sí.
 - "Deshacer la última limpieza" ahora también devuelve las imágenes, vídeos
   y manuales huérfanos; deshace los movimientos del último al primero (un
-  hack movido dos veces en una sesión vuelve a su carpeta original); y un
-  archivo que no se pueda restaurar ya no detiene al resto.
+  hack movido dos veces en una sesión vuelve a su carpeta original); un
+  archivo que no se pueda restaurar ya no detiene al resto; y una limpieza
+  que no ejecuta nada ya no sustituye a la última real como la limpieza a
+  deshacer.
 - El gamelist.xml de RetroBat: los favoritos, veces jugadas, fechas de
   última partida y notas de un duplicado movido pasan a la ROM que se queda
   (también en los hacks duplicados exactos), y las entradas de los hacks
@@ -184,6 +186,20 @@ Todo lo que sigue se explica con detalle en su propia sección más abajo.
 - El número de versión vive en un único archivo (VERSION); Tools\Build-Release.ps1
   y un flujo de GitHub generan y publican el ZIP de la versión.
 - Todos los mensajes en pantalla salen ahora de Strings.ps1 en español e inglés.
+- Sistemas y formatos nuevos de la tabla de RetroBat 8.2.1: 41 sistemas más
+  (Sega 32X, Atari 5200, NEC SuperGrafx, PC Engine CD, Neo Geo CD, Virtual
+  Boy, VIC-20, Apple IIGS, Amiga CD32, Naomi 2, ScummVM, PICO-8...) y 63
+  formatos de ROM más, en total 104 sistemas y 176 formatos. La tabla de todo
+  lo soportado, y de lo que se dejó fuera a propósito y por qué, está en
+  CleanROMs_Sistemas_y_formatos.xlsx (también en inglés:
+  CleanROMs_Systems_and_Formats.xlsx).
+- Elegir 7 (Salir) en el menú ahora cierra el programa a la PRIMERA. Antes
+  pedía "Pulse ENTER para salir" y luego el lanzador pedía otra tecla;
+  CleanROMs.bat ahora solo espera una tecla si el programa terminó con un
+  error, para que puedas leer el mensaje.
+- Con tantos sistemas configurados, los que no tienen carpeta en tu RetroBat
+  se omiten sin ruido y se cuentan en UNA línea, en vez de una línea
+  "Carpeta no encontrada" por cada uno.
 - El lanzador "Run CleanROMs.bat" pasa a llamarse simplemente "CleanROMs.bat"
   (si creaste un acceso directo al nombre antiguo, apúntalo al nuevo).
 - Pruebas automáticas e integración continua: Run-AllTests.ps1 (ahora falla
@@ -277,6 +293,16 @@ Deshacer: hacks y movimientos encadenados
   volvían las ROMs pero sus imágenes y vídeos se quedaban en _duplicates.
   Ahora cada medio movido es un movimiento más del plan (subcarpetas
   incluidas), y si uno no se puede mover se avisa sin parar el resto.
+- Una limpieza que no ejecuta nada (no había nada que limpiar, o contestas
+  "N") ya no sustituye a la última limpieza real como "la última limpieza".
+  Antes, una segunda limpieza que no encontraba nada hacía que "Deshacer"
+  propusiera por defecto una limpieza vacía y escondía la real como "1)" en
+  la lista, así que parecía que Deshacer no restauraba nada (ni ROMs ni
+  imágenes, vídeos o manuales).
+- Los medios movidos por versiones anteriores a la 2.8 nunca quedaron
+  anotados en el plan, así que "Deshacer" no puede devolverlos. Para
+  devolverlos a mano, mueve los archivos de _duplicates\<sistema>\images,
+  videos y manuals a la misma carpeta de ese sistema.
 - Si un archivo concreto no se puede restaurar (bloqueado por otro
   programa, sin permisos...), "Deshacer" avisa, lo cuenta ("Con error:
   N") y sigue con el resto. En modo desatendido (-Yes) el código de
@@ -442,6 +468,24 @@ Config\Extensions.custom.json, con el mismo formato:
   archivo y se ignora. Si un archivo no se puede leer (JSON roto) o no define
   ningún sistema ni ninguna extensión, el programa se detiene con un mensaje
   que nombra el archivo y el error.
+
+Qué se añadió de la tabla de RetroBat 8.2.1, y qué se dejó fuera
+- Añadido: 41 sistemas y 63 formatos de ROM (mira
+  CleanROMs_Sistemas_y_formatos.xlsx, que lista todo lo soportado, marca lo
+  nuevo y explica cada exclusión; hay también una versión en inglés). Los nombres de carpeta más nuevos de
+  RetroBat (jaguar, colecovision, atarilynx, 3ds, amstradgx4000, ngp) se
+  añaden JUNTO A los antiguos, así que valen instalaciones de RetroBat
+  antiguas y nuevas.
+- Dejado fuera a propósito, porque CleanROMs mueve "duplicados" por título y
+  esto podría hacerle mover cosas que no son ROMs: las carpetas "library" y
+  "screenshots" (imágenes, vídeos, PDF), "retrobat" (menú), y "pc", "ports" y
+  "cavestory" (.exe, .bat, .lnk...). También las extensiones de imágenes,
+  vídeos y documentos (.png, .jpg, .mp4, .pdf...), de ejecutables y
+  configuración (.exe, .bat, .lnk, .json...), nombres de datos genéricos que
+  usan otros programas (.dat, .pak, .wad, .elf...) y archivos acompañantes
+  que parecerían duplicados de su juego (.ccd, .rap).
+- Si quieres alguno de ellos, añádelo tú en Config\Systems.custom.json /
+  Config\Extensions.custom.json (ver arriba).
 
 
 Número de versión y publicación

@@ -1,0 +1,9 @@
+{
+  "Prefer": [
+    { "System": "snes", "File": "Super Mario World (Europe).sfc" }
+  ],
+  "Ignore": [
+    { "System": "snes", "Title": "Super Mario World" },
+    { "System": "nes", "File": "Zelda II (USA).nes" }
+  ]
+}

@@ -15,8 +15,8 @@ What it does
 ------------
 For each system folder you choose:
 
-1. Scans it for files with a recognized ROM extension (110+ extensions,
-   60+ systems supported: Nintendo, Sega, Sony, arcade, home computers...).
+1. Scans it for files with a recognized ROM extension (170+ extensions,
+   100+ systems supported: Nintendo, Sega, Sony, arcade, home computers...).
 2. Parses each file name (and, for .zip/.7z archives containing a single
    ROM, the inner file name too) to extract region, language, version,
    revision, and special flags (Hack, Beta, Prototype, Demo, Homebrew,
@@ -144,8 +144,9 @@ Everything below is described in detail in its own section further down.
   one was moved, and the discs of a game looked like duplicates of each other.
 - "Undo the last cleanup" now also restores the orphaned images, videos and
   manuals; it undoes moves from last to first (a hack moved twice in one
-  session returns to its original folder); and a file that can't be restored
-  no longer stops the rest.
+  session returns to its original folder); a file that can't be restored
+  no longer stops the rest; and a cleanup that executes nothing no longer
+  replaces the last real one as the cleanup to undo.
 - RetroBat's gamelist.xml: favorites, play counts, last-played dates and
   ratings of a moved duplicate are carried over to the ROM that stays (also
   for exact duplicate hacks), and the entries of hacks organized into
@@ -167,6 +168,20 @@ Everything below is described in detail in its own section further down.
 - The version number lives in one file (VERSION); Tools\Build-Release.ps1 and
   a GitHub workflow build and publish the release ZIP.
 - Every on-screen message now comes from Strings.ps1 in Spanish and English.
+- New systems and formats from the RetroBat 8.2.1 table: 41 more systems
+  (Sega 32X, Atari 5200, NEC SuperGrafx, PC Engine CD, Neo Geo CD, Virtual
+  Boy, VIC-20, Apple IIGS, Amiga CD32, Naomi 2, ScummVM, PICO-8...) and 63
+  more ROM formats, for 104 systems and 176 formats in total. The table of
+  everything supported, and what was deliberately left out and why, is in
+  CleanROMs_Systems_and_Formats.xlsx (also in Spanish:
+  CleanROMs_Sistemas_y_formatos.xlsx).
+- Choosing 7 (Exit) in the menu now closes the program on the FIRST press.
+  Before it asked "Press ENTER to exit" and then the launcher asked for
+  another key; CleanROMs.bat now only waits for a key if the program ended
+  with an error, so you can read the message.
+- With so many systems configured, the ones whose folder doesn't exist in
+  your RetroBat are skipped silently and counted in ONE line, instead of one
+  "Folder not found" line each.
 - The launcher "Run CleanROMs.bat" is now simply "CleanROMs.bat" (if you made
   a shortcut to the old name, point it to the new one).
 - Automated tests and CI: Run-AllTests.ps1 (it now fails with exit code 1 when
@@ -255,6 +270,15 @@ Undo: hacks and chained moves
   back but their images and videos stayed in _duplicates. Every media file
   moved is now one more move in the plan (subfolders included), and one
   that can't be moved is reported without stopping the rest.
+- A cleanup that executes nothing (there was nothing to clean, or you answer
+  "N") no longer replaces the last real cleanup as "the last cleanup".
+  Before, a second cleanup that found nothing made "Undo" offer an empty
+  cleanup by default and hid the real one as "1)" in the list, so it looked
+  as if Undo restored nothing (neither ROMs nor images, videos or manuals).
+- Media moved by versions older than 2.8 were never recorded in the plan,
+  so "Undo" cannot bring them back. To put them back by hand, move the
+  files from _duplicates\<system>\images, videos and manuals into the same
+  folder of that system.
 - If a single file can't be restored (locked by another program, no
   permission...), "Undo" now warns, counts it ("Failed: N") and goes on
   with the rest. In unattended mode (-Yes) the exit code is then 2.
@@ -411,6 +435,23 @@ Config\Systems.custom.json and/or Config\Extensions.custom.json, same format:
   ignored. If a file can't be read (broken JSON) or defines no systems or
   extensions, the program stops with a message naming the file and the
   error.
+
+What was added from the RetroBat 8.2.1 table, and what was left out
+- Added: 41 systems and 63 ROM formats (see CleanROMs_Systems_and_Formats.xlsx,
+  which lists everything supported, marks what is new, and explains each
+  exclusion; there is a Spanish version too). Newer RetroBat folder names (jaguar, colecovision, atarilynx,
+  3ds, amstradgx4000, ngp) are added NEXT TO the old ones, so both old and
+  new RetroBat installations work.
+- Left out on purpose, because CleanROMs moves "duplicates" by title and
+  these could make it move things that are not ROMs: the folders "library"
+  and "screenshots" (images, videos, PDF), "retrobat" (menu), and "pc",
+  "ports" and "cavestory" (.exe, .bat, .lnk...). Also the extensions of
+  images, videos and documents (.png, .jpg, .mp4, .pdf...), executables and
+  config files (.exe, .bat, .lnk, .json...), generic data names that other
+  programs also use (.dat, .pak, .wad, .elf...), and companion files that
+  would look like duplicates of their game (.ccd, .rap).
+- If you do want one of them, add it yourself in Config\Systems.custom.json
+  / Config\Extensions.custom.json (see above).
 
 
 Version number and releases

@@ -99,6 +99,17 @@ $Global:AutoConfirm = [bool]$Yes
 
 $Global:ActionErrorCount = 0
 
+#
+# Se pone a $true cuando el usuario sale con la opcion 7 del menu. En ese
+# caso el programa termina SIN el "Pulse ENTER para salir": quien pulsa
+# "Salir" ya sabe que se acaba, y esa pausa (mas la del lanzador .bat)
+# obligaba a pulsar dos veces. La pausa solo se conserva cuando el programa
+# acaba por otra via (una accion de linea de comandos, un error...), para
+# que la ventana no se cierre antes de poder leer lo que haya pasado.
+#
+
+$exitedFromMenu = $false
+
 Initialize-Language -Root $Root
 Initialize-RomPriorityLanguage -Root $Root
 Initialize-RetroBatRoot -Root $Root
@@ -246,6 +257,7 @@ $mainAction = Select-MainAction
 
 if($mainAction -eq 7)
 {
+    $exitedFromMenu = $true
     break mainLoop
 }
 
@@ -409,4 +421,7 @@ finally
 # Fin
 #--------------------------------------------------------------
 
-Pause-End
+if(-not $exitedFromMenu)
+{
+    Pause-End
+}

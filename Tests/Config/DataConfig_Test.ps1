@@ -65,9 +65,76 @@ try
 
     Import-DataConfig -ConfigFolder $realConfig 3>$null
 
-    Assert-Equal 63 $Global:SystemPaths.Count "Config entregada: 63 sistemas"
-    Assert-Equal 113 @($Global:RomExtensions).Count "Config entregada: 113 extensiones"
+    Assert-Equal 104 $Global:SystemPaths.Count "Config entregada: 104 sistemas (63 + 41 de la tabla de RetroBat 8.2.1)"
+    Assert-Equal 176 @($Global:RomExtensions).Count "Config entregada: 176 extensiones (113 + 63 de la tabla de RetroBat 8.2.1)"
     Assert-Equal 12 @($Global:IgnoredFolders).Count "Config entregada: 12 carpetas ignoradas"
+
+    #
+    # Sistemas de la tabla de RetroBat 8.2.1 ya incluidos
+    #
+
+    foreach($folder in "sega32x", "atari5200", "jaguar", "pcenginecd", "neogeocd", "vic20", "amigacd32", "naomi2", "scummvm", "pico8", "virtualboy", "n64dd")
+    {
+        Assert-Equal $true (@($Global:SystemPaths.Values) -contains $folder) "Config entregada: incluye el sistema '$folder'"
+    }
+
+    # Los nombres antiguos de carpeta siguen funcionando (quien tenga RetroBat anterior)
+    foreach($folder in "atarijaguar", "coleco", "lynx", "n3ds", "gx4000", "ngpc")
+    {
+        Assert-Equal $true (@($Global:SystemPaths.Values) -contains $folder) "Config entregada: sigue incluyendo el nombre antiguo de carpeta '$folder'"
+    }
+
+    #
+    # Lo que NO debe estar NUNCA (la tabla de RetroBat lo declara, pero aqui
+    # seria peligroso: el programa mueve "duplicados" por titulo)
+    #
+
+    foreach($folder in "library", "screenshots", "retrobat", "pc", "ports", "cavestory")
+    {
+        Assert-Equal $false (@($Global:SystemPaths.Values) -contains $folder) "Config entregada: NO incluye la carpeta '$folder' (medios o ejecutables, no ROMs)"
+    }
+
+    $forbidden = @(
+        ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".psd", ".tga", ".mp4", ".mkv", ".avi", ".pdf", ".cbz", ".cbr",
+        ".exe", ".bat", ".cmd", ".lnk", ".sh", ".com", ".conf", ".json", ".lst", ".menu",
+        ".dat", ".pak", ".wad", ".elf", ".o", ".p", ".app", ".game",
+        ".ccd", ".rap"
+    )
+
+    $presentForbidden = @($forbidden | Where-Object { @($Global:RomExtensions) -contains $_ })
+
+    Assert-Equal 0 $presentForbidden.Count "Config entregada: ninguna extension de imagen/video/documento/ejecutable/generica o acompanante ($($presentForbidden -join ', '))"
+
+    $badFormat = @(@($Global:RomExtensions) | Where-Object { $_ -cnotmatch '^\.[a-z0-9_]+$' })
+
+    Assert-Equal 0 $badFormat.Count "Config entregada: todas las extensiones empiezan por punto y estan en minusculas ($($badFormat -join ', '))"
+    Assert-Equal @($Global:RomExtensions).Count @($Global:RomExtensions | Select-Object -Unique).Count "Config entregada: sin extensiones repetidas"
+    Assert-Equal $Global:SystemPaths.Count @($Global:SystemPaths.Values | ForEach-Object { $_.ToLowerInvariant() } | Select-Object -Unique).Count "Config entregada: dos nombres de sistema no apuntan a la misma carpeta"
+
+    #
+    # El escaner reconoce un formato nuevo y sigue ignorando medios
+    #
+
+    $scanRoot = New-TestTempFolder
+
+    try
+    {
+        $sys32x = Join-Path $scanRoot "sega32x"
+        New-Item -ItemType Directory -Path $sys32x -Force | Out-Null
+
+        foreach($n in "Game (USA).32x", "Game (Europe).32x", "Cover (USA).png", "Setup (USA).exe", "Notes.pdf")
+        {
+            Set-Content -LiteralPath (Join-Path $sys32x $n) -Value "x"
+        }
+
+        $recognized = @(Get-RomFiles -Folder $sys32x | ForEach-Object Name | Sort-Object)
+
+        Assert-Equal "Game (Europe).32x,Game (USA).32x" ($recognized -join ",") "Escaner: reconoce .32x (formato nuevo) e ignora .png, .exe y .pdf"
+    }
+    finally
+    {
+        Remove-Item -Path $scanRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Assert-Equal "snes" $Global:SystemPaths["SNES"] "Config entregada: SNES -> snes"
     Assert-Equal "nes3d" $Global:SystemPaths["Nintendo Entertainment System 3D (NES3D)"] "Config entregada: NES3D -> nes3d (el caso que ya dio guerra)"
     Assert-Equal $true (@($Global:RomExtensions) -contains ".chd") "Config entregada: .chd es extension de ROM"

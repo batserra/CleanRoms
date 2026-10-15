@@ -49,16 +49,31 @@ function Assert-Smoke
 
 function Invoke-Program
 {
-    param([string[]]$Arguments)
+    param([string[]]$Arguments, [string]$InputText = "")
 
     $out = Join-Path $work "out.txt"
     $err = Join-Path $work "err.txt"
 
     $argList = @("-NoProfile", "-File", ('"{0}"' -f (Join-Path $program "main.ps1"))) + $Arguments
 
-    $p = Start-Process -FilePath $pwshExe -ArgumentList $argList `
-        -RedirectStandardOutput $out -RedirectStandardError $err `
-        -PassThru -NoNewWindow
+    $startArgs = @{
+        FilePath               = $pwshExe
+        ArgumentList           = $argList
+        RedirectStandardOutput = $out
+        RedirectStandardError  = $err
+        PassThru               = $true
+        NoNewWindow            = $true
+    }
+
+    # Respuestas que se le "escriben" al programa (para probar el menu)
+    if($InputText -ne "")
+    {
+        $inFile = Join-Path $work "in.txt"
+        [System.IO.File]::WriteAllText($inFile, $InputText)
+        $startArgs["RedirectStandardInput"] = $inFile
+    }
+
+    $p = Start-Process @startArgs
 
     if(-not $p.WaitForExit(180000))
     {
@@ -197,6 +212,21 @@ try
     Assert-Smoke (-not $r2b.TimedOut) "Purge -Yes termina solo"
     Assert-Smoke ($r2b.ExitCode -eq 0) "Purge -Yes: codigo de salida 0 (fue $($r2b.ExitCode))"
     Assert-Smoke (@(Get-ChildItem -LiteralPath (Join-Path $roms "_duplicates") -Recurse -File -Filter *.sfc).Count -eq 1) "Purge: lo que acaba de moverse sigue en _duplicates (no se borra nada reciente)"
+
+    #
+    # 2c) Salir con la opcion 7 del menu: termina a la PRIMERA, sin pedir
+    #     "Pulse ENTER para salir" (antes habia que pulsar Enter y luego
+    #     otra tecla en el lanzador)
+    #
+
+    $settings = [ordered]@{ RetroBatRoot = $roms; Language = "es"; RomPriorityLanguage = "es" }
+    $settings | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (Join-Path $program "Config") "UserSettings.json") -Encoding UTF8
+
+    $r2c = Invoke-Program @() "7`n"
+
+    Assert-Smoke (-not $r2c.TimedOut) "Salir con 7: termina solo"
+    Assert-Smoke ($r2c.ExitCode -eq 0) "Salir con 7: codigo de salida 0 (fue $($r2c.ExitCode))"
+    Assert-Smoke ($r2c.Output -notmatch "ENTER") "Salir con 7: no pide 'Pulse ENTER para salir' (salida: $($r2c.Output.Trim().Split("`n")[-1]))"
 
     #
     # 3) Deshacer

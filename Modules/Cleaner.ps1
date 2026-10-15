@@ -130,20 +130,39 @@ function Invoke-RomCleaning {
     Initialize-SevenZipSupport
 
     $groups = @()
+    $missingFolders = 0
 
     foreach($folder in $SystemFolders)
     {
         $systemName = Split-Path $folder -Leaf
 
-        Write-Host ""
-        Write-Host (T "scan.system" $systemName)
-        Write-Host (T "scan.folder" $folder)
+        #
+        # Con mas de 100 sistemas configurados, la mayoria no existira en
+        # tu RetroBat: se omiten sin ensuciar la pantalla y se cuentan en
+        # una sola linea al final. Si pediste UN sistema concreto y no
+        # existe, si se te avisa con detalle.
+        #
 
         if(!(Test-Path -LiteralPath $folder))
         {
-            Write-Host (T "cleaner.folderNotFound") -ForegroundColor DarkYellow
+            if($SystemFolders.Count -eq 1)
+            {
+                Write-Host ""
+                Write-Host (T "scan.system" $systemName)
+                Write-Host (T "scan.folder" $folder)
+                Write-Host (T "cleaner.folderNotFound") -ForegroundColor DarkYellow
+            }
+            else
+            {
+                $missingFolders++
+            }
+
             continue
         }
+
+        Write-Host ""
+        Write-Host (T "scan.system" $systemName)
+        Write-Host (T "scan.folder" $folder)
 
         $roms = @(Get-RomsFromFolder -Path $folder -SystemName $systemName)
 
@@ -176,6 +195,12 @@ function Invoke-RomCleaning {
         Write-Host (T "scan.groupsFound" $sysGroups.Count)
 
         $groups += $sysGroups
+    }
+
+    if($missingFolders -gt 0)
+    {
+        Write-Host ""
+        Write-Host (T "cleaner.foldersSkipped" $missingFolders) -ForegroundColor DarkGray
     }
 
     Write-Host ""
@@ -247,6 +272,9 @@ function Invoke-RomCleaning {
     {
         Write-Host ""
         Write-Host (T "plan.nothingToExecute")
+
+        Restore-PreviousCleanPlan -OutputFolder (Join-Path $Root "Resultado") -RotatedTo $exported.RotatedTo
+
         return
     }
 
@@ -262,6 +290,9 @@ function Invoke-RomCleaning {
             Write-Host (T "plan.operationCancelledDetail" $plan.TotalMove) -ForegroundColor Yellow
             Write-Host "==========================================" -ForegroundColor Yellow
             Write-Host ""
+
+            Restore-PreviousCleanPlan -OutputFolder (Join-Path $Root "Resultado") -RotatedTo $exported.RotatedTo
+
             return
         }
     }
@@ -750,9 +781,11 @@ function Export-CleanPlan {
 
     $htmlFile = Join-Path $OutputFolder "CleanPlan.html"
 
+    $rotatedTo = $null
+
     if($Rotate)
     {
-        Move-CleanPlanToHistory -OutputFolder $OutputFolder
+        $rotatedTo = Move-CleanPlanToHistory -OutputFolder $OutputFolder
     }
 
     #
@@ -793,6 +826,9 @@ function Export-CleanPlan {
         Csv  = $csvFile
 
         Html = $htmlFile
+
+        # Donde se archivo la sesion anterior (o $null si no habia)
+        RotatedTo = $rotatedTo
 
     }
 
@@ -956,6 +992,44 @@ function Move-CleanPlanToHistory {
         }
     }
 
+    return $historyFile
+
+}
+
+# ============================================================
+# Deshace la rotacion de Move-CleanPlanToHistory: devuelve la sesion
+# anterior a ser "la ultima limpieza".
+#
+# Export-CleanPlan -Rotate se llama al ENSENAR el plan, antes de
+# pedir confirmacion. Si luego no se ejecuta nada (no habia nada que
+# mover, o el usuario contesta "N"), ese plan nuevo no representa
+# ninguna limpieza: dejarlo como "la ultima" hacia que "Deshacer la
+# ultima limpieza" propusiera por defecto una limpieza vacia, y la
+# real quedaba escondida como "1)" en el historial. Los informes
+# CSV y HTML se conservan (sirven para revisar lo que se iba a hacer).
+# ============================================================
+
+function Restore-PreviousCleanPlan {
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$OutputFolder,
+
+        # Valor de RotatedTo devuelto por Export-CleanPlan
+        $RotatedTo
+    )
+
+    $currentJson = Join-Path $OutputFolder "CleanPlan.json"
+
+    if([string]::IsNullOrWhiteSpace([string]$RotatedTo) -or !(Test-Path -LiteralPath $RotatedTo))
+    {
+        # No habia sesion anterior: el plan sin ejecutar no debe quedarse como "ultima limpieza"
+        Remove-Item -LiteralPath $currentJson -Force -ErrorAction SilentlyContinue
+        return
+    }
+
+    Copy-Item -LiteralPath $RotatedTo -Destination $currentJson -Force
+    Remove-Item -LiteralPath $RotatedTo -Force -ErrorAction SilentlyContinue
 }
 
 # ============================================================
