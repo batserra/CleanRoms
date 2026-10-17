@@ -478,6 +478,15 @@
   "runs": [
    [
     "r",
+    "• The tie question now has a third option, \"3 = keep ALL\", for copies that are really different games (for example arcade CHDs with the same disc name in different revision folders); in unattended mode such a tie keeps all copies instead of moving one (section 3)."
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
     "• Hash cache: files that have not changed are not hashed again (section 26)."
    ]
   ]
@@ -1321,10 +1330,37 @@
   "runs": [
    [
     "r",
-    "This last step (asking you) only happens when there truly is no automatic criterion left to tell them apart — in a normal collection this is uncommon, because step 8 (preferring the uncompressed one) already resolves the most typical case (the same ROM as a .zip and uncompressed). In non-interactive mode (see section 21), this question answers itself by choosing option 1, without blocking execution."
+    "This last step (asking you) only happens when there truly is no automatic criterion left to tell them apart — in a normal collection this is uncommon, because step 8 (preferring the uncompressed one) already resolves the most typical case (the same ROM as a .zip and uncompressed). In non-interactive mode (see section 21), if the contents of the two copies differ, ALL the copies are kept and none is moved (before, the first was kept and the other was moved); if the contents are identical, one is chosen automatically."
    ]
   ],
   "lines": null
+ },
+ {
+  "type": "h2",
+  "runs": [
+   [
+    "b",
+    "Option 3: keep ALL copies"
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
+    "The question offers three answers: 1 or 2 keeps that copy and moves the other, and 3 keeps ALL the copies and moves none. Use 3 when the copies are really different games that merely look alike. For example, two arcade CHD discs with the same disc name (gds-0027.chd) in the folders of two revisions of the same game (initdv2e and initdv2j) have a different hash and are different games, not duplicates. After choosing 3 the program offers to remember that the game is not touched (section 24)."
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
+    "Before asking, the program compares the contents: if the two files are byte-identical it chooses one by itself, and if they differ it warns you that the content is NOT identical (different MD5 hash)."
+   ]
+  ]
  },
  {
   "type": "h1",
@@ -4285,7 +4321,7 @@
   "runs": [
    [
     "r",
-    "When two copies tie and the program asks which one to keep (section 3), it now offers to remember your answer for future cleanups. If you accept, it is saved to Overrides.json as a \"Prefer\". With -Yes it never asks and never saves anything."
+    "When two copies tie and the program asks which one to keep (section 3), it now offers to remember your answer for future cleanups. If you accept, it is saved to Overrides.json as a \"Prefer\". If you answer 3 (keep all the copies), it offers to remember that the game is not touched: it is saved as an \"Ignore\" by title, so it is never asked about or moved again. With -Yes it never asks and never saves anything."
    ]
   ]
  },

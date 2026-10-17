@@ -48,6 +48,10 @@ $Global:OverridesPath = ""
 # recibe las dos ROMs).
 $Global:OverrideContextSystem = ""
 
+# Titulo normalizado del grupo que se esta decidiendo ahora mismo (para
+# poder anotar un "Ignore" al elegir "conservar todas" en un empate).
+$Global:OverrideContextTitle = ""
+
 function Get-OverridesPath {
 
     if(-not [string]::IsNullOrWhiteSpace($Global:OverridesPath))
@@ -371,6 +375,109 @@ function Invoke-OfferRememberChoice {
     $fileName = Split-Path $Chosen.FullPath -Leaf
 
     if(Add-OverridePrefer -System $Global:OverrideContextSystem -File $fileName)
+    {
+        Write-Host (T "overrides.remembered" (Get-OverridesPath)) -ForegroundColor DarkCyan
+    }
+}
+
+#--------------------------------------------------------------
+# Anade un "Ignore" por titulo a Config\Overrides.json (lo crea si no
+# existe), sin tocar nada de lo que ya hubiera. Devuelve $true si lo
+# guardo. Igual que Add-OverridePrefer: no sobrescribe un archivo que
+# no se puede leer.
+#--------------------------------------------------------------
+
+function Add-OverrideIgnore {
+
+    param(
+        [string]$System = "",
+
+        [Parameter(Mandatory)]
+        [string]$Title
+    )
+
+    $path = Get-OverridesPath
+
+    $prefer = @()
+    $ignore = @()
+
+    if(Test-Path -LiteralPath $path)
+    {
+        try
+        {
+            $raw = Get-Content -LiteralPath $path -Raw
+
+            if(-not [string]::IsNullOrWhiteSpace($raw))
+            {
+                $json = $raw | ConvertFrom-Json
+
+                $prefer = @(Get-OverrideList $json "Prefer")
+                $ignore = @(Get-OverrideList $json "Ignore")
+            }
+        }
+        catch
+        {
+            Write-Warning (T "overrides.invalid" @($path, $_.Exception.Message))
+            return $false
+        }
+    }
+
+    foreach($e in $ignore)
+    {
+        if((Get-OverrideField $e "Title") -ieq $Title -and
+           (Get-OverrideField $e "System") -ieq $System)
+        {
+            return $true
+        }
+    }
+
+    $entry = [ordered]@{}
+
+    if($System -ne "")
+    {
+        $entry["System"] = $System
+    }
+
+    $entry["Title"] = $Title
+
+    $ignore += [PSCustomObject]$entry
+
+    $folder = Split-Path $path -Parent
+
+    if(!(Test-Path -LiteralPath $folder))
+    {
+        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+    }
+
+    [ordered]@{
+        Prefer = @($prefer)
+        Ignore = @($ignore)
+    } |
+        ConvertTo-Json -Depth 6 |
+        Set-Content -LiteralPath $path -Encoding UTF8
+
+    return $true
+}
+
+#--------------------------------------------------------------
+# Tras elegir "conservar TODAS" en un empate: ofrece recordarlo (se
+# guarda como "Ignore" por titulo, asi ese juego no se vuelve a tocar
+# ni a preguntar, tampoco en las limpiezas desatendidas)
+#--------------------------------------------------------------
+
+function Invoke-OfferRememberKeepAll {
+
+    if([string]::IsNullOrWhiteSpace($Global:OverrideContextTitle))
+    {
+        return
+    }
+
+    if(-not (Confirm-YesNo "overrides.rememberKeepAllPrompt"))
+    {
+        return
+    }
+
+    if(Add-OverrideIgnore -System $Global:OverrideContextSystem -Title $Global:OverrideContextTitle)
     {
         Write-Host (T "overrides.remembered" (Get-OverridesPath)) -ForegroundColor DarkCyan
     }

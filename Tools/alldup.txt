@@ -1,0 +1,1 @@
+para encontrar ficheros duplicados y exportarlo a Excel

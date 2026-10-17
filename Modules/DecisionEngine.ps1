@@ -473,6 +473,14 @@ function Get-DecisionReason
 # RESOLVER UN EMPATE TOTAL PREGUNTANDO AL USUARIO
 #=========================================================
 
+#
+# Se pone a $true cuando, ante un empate, se decide CONSERVAR TODAS las
+# copias del grupo (opcion 3 al preguntar, o modo no interactivo con
+# contenidos distintos). Decide-RomGroup lo lee al terminar de comparar y
+# lo vuelve a poner a $false.
+#
+$Global:TieKeepAll = $false
+
 function Resolve-RomTie {
 
     param(
@@ -489,6 +497,13 @@ function Resolve-RomTie {
     # conserve — se elige sin molestar, y se deja constancia en
     # pantalla de por qué no hizo falta preguntar.
     #
+
+    # Si ya se decidio conservar todas las copias de este grupo (en una
+    # comparacion anterior), no se vuelve a preguntar.
+    if($Global:TieKeepAll)
+    {
+        return $A
+    }
 
     $identical = Test-RomsIdenticalContent -PathA $A.FullPath -PathB $B.FullPath
 
@@ -519,16 +534,19 @@ function Resolve-RomTie {
     if($Global:AutoConfirm)
     {
         #
-        # Modo no interactivo: no hay nadie para responder cuál
-        # prefiere conservar. Se elige la 1) sin más -- son
-        # contenidos distintos con la misma puntuación exacta, así
-        # que no hay una respuesta "correcta" objetiva; se deja
-        # constancia en pantalla/log de que se decidió así, para
-        # que se pueda revisar luego a mano si hace falta.
+        # Modo no interactivo: no hay nadie para responder cual prefiere
+        # conservar. Son contenidos DISTINTOS (o no se pudo comprobar) con
+        # la misma puntuacion exacta: no hay una respuesta correcta, y
+        # elegir una y MOVER la otra podria apartar un juego distinto (por
+        # ejemplo dos discos CHD de arcade con el mismo nombre en carpetas
+        # de revisiones distintas). Antes se conservaba la 1) y se movia la
+        # otra; ahora, con la duda, NO SE MUEVE NADA: se conservan todas.
         #
 
-        Write-Host (T "tie.ask")
-        Write-Host (T "confirm.autoConfirmed") -ForegroundColor DarkGray
+        $Global:TieKeepAll = $true
+
+        Write-Host (T "tie.autoKeepAll") -ForegroundColor Yellow
+
         return $A
     }
 
@@ -536,7 +554,19 @@ function Resolve-RomTie {
     {
         $choice = Read-Host (T "tie.ask")
     }
-    until($choice -match '^[12]$')
+    until($choice -match '^[123]$')
+
+    if([int]$choice -eq 3)
+    {
+        # Conservar TODAS las copias de este juego: no se mueve ninguna
+        $Global:TieKeepAll = $true
+
+        Write-Host (T "tie.keepAllChosen") -ForegroundColor Green
+
+        Invoke-OfferRememberKeepAll
+
+        return $A
+    }
 
     $chosen = if([int]$choice -eq 1) { $A } else { $B }
 
@@ -730,14 +760,31 @@ function Decide-RomGroup {
         }
     }
 
+    $keepAll = $false
+
     if(-not $manual)
     {
+        $Global:TieKeepAll = $false
+
         $keep = Get-BestRom $Roms
+
+        # Si en algun empate se decidio conservar todas las copias, el grupo
+        # no mueve nada. La bandera se limpia para el grupo siguiente.
+        $keepAll = [bool]$Global:TieKeepAll
+        $Global:TieKeepAll = $false
     }
 
     $move = @()
+    $keepAlso = @()
 
     foreach($rom in $Roms){
+
+        if($keepAll -and $rom.FullPath -ne $keep.FullPath){
+
+            $keepAlso += $rom
+
+            continue
+        }
 
         if($rom.FullPath -ne $keep.FullPath){
 
@@ -781,7 +828,10 @@ function Decide-RomGroup {
 
         WinnerScore = $keep.Score
 
-        KeepReason = @(Get-DecisionReason $keep) + $(if($manual){ @(T "overrides.keepReason") } else { @() })
+        # Otras copias que tambien se conservan (opcion 3 del empate)
+        KeepAlso = @($keepAlso)
+
+        KeepReason = @(Get-DecisionReason $keep) + $(if($manual){ @(T "overrides.keepReason") } elseif($keepAll){ @(T "tie.keepAllReason") } else { @() })
 
         DecisionDate = Get-Date
 

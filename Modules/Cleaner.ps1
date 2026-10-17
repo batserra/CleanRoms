@@ -235,7 +235,9 @@ function Invoke-RomCleaning {
     # Validación
     #--------------------------------------------------------------
 
-    Validate-CleanPlan $plan
+    # (devuelve $true si el plan es valido y lanza una excepcion si no; el
+    # valor se descarta para que no salga un "True" suelto en pantalla)
+    $null = Validate-CleanPlan $plan
 
     #--------------------------------------------------------------
     # Vista previa
@@ -409,6 +411,7 @@ function Invoke-CleanPreview {
         }
 
         $Global:OverrideContextSystem = [string]$group.System
+        $Global:OverrideContextTitle = [string]$group.Name
 
         $decision = Decide-RomGroup $group.Roms -PreferredPath $override.PreferredPath
 
@@ -437,6 +440,28 @@ function Invoke-CleanPreview {
                 -Reason (T "multifile.memberKeep" (Split-Path $decision.Keep.FullPath -Leaf)) `
                 -Hash $hashLookup[$member.FullPath] `
                 -System $group.System
+        }
+
+        # Otras copias que tambien se conservan (opcion 3 de un empate:
+        # "conservar todas")
+        foreach($also in @($decision.KeepAlso))
+        {
+            $actions += New-CleanAction `
+                -Action "KEEP" `
+                -Rom $also `
+                -Reason (T "tie.keepAllReason") `
+                -Hash $hashLookup[$also.FullPath] `
+                -System $group.System
+
+            foreach($member in @(Get-RomUnitMembers $also))
+            {
+                $actions += New-CleanAction `
+                    -Action "KEEP" `
+                    -Rom $member `
+                    -Reason (T "multifile.memberKeep" (Split-Path $also.FullPath -Leaf)) `
+                    -Hash $hashLookup[$member.FullPath] `
+                    -System $group.System
+            }
         }
 
         #
@@ -507,6 +532,7 @@ function Invoke-CleanPreview {
     }
 
     $Global:OverrideContextSystem = ""
+    $Global:OverrideContextTitle = ""
 
     if($ignoredGroups -gt 0)
     {

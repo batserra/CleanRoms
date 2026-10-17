@@ -478,6 +478,15 @@
   "runs": [
    [
     "r",
+    "• La pregunta del empate tiene ahora una tercera opción, \"3 = conservar TODAS\", para copias que en realidad son juegos distintos (por ejemplo CHD de arcade con el mismo nombre de disco en carpetas de revisiones distintas); en modo desatendido un empate así conserva todas las copias en vez de mover una (sección 3)."
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
     "• Caché de hashes: los archivos que no han cambiado no se vuelven a hashear (sección 26)."
    ]
   ]
@@ -1321,10 +1330,37 @@
   "runs": [
    [
     "r",
-    "Este último paso (preguntarte) solo ocurre cuando de verdad no queda ningún criterio automático que las diferencie — en una colección normal, es poco frecuente, porque el paso 8 (preferir sin comprimir) ya resuelve el caso más habitual (la misma ROM en .zip y sin comprimir). En modo no interactivo (ver sección 21), esta pregunta se responde sola eligiendo la opción 1, sin bloquear la ejecución."
+    "Este último paso (preguntarte) solo ocurre cuando de verdad no queda ningún criterio automático que las diferencie — en una colección normal, es poco frecuente, porque el paso 8 (preferir sin comprimir) ya resuelve el caso más habitual (la misma ROM en .zip y sin comprimir). En modo no interactivo (ver sección 21), si el contenido de las dos copias es distinto se conservan TODAS y no se mueve ninguna (antes se conservaba la primera y se movía la otra); si el contenido es idéntico, se elige una automáticamente."
    ]
   ],
   "lines": null
+ },
+ {
+  "type": "h2",
+  "runs": [
+   [
+    "b",
+    "Opción 3: conservar TODAS las copias"
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
+    "La pregunta ofrece tres respuestas: 1 o 2 conserva esa copia y mueve la otra, y 3 conserva TODAS las copias y no mueve ninguna. Usa la 3 cuando las copias son en realidad juegos distintos que solo se parecen. Por ejemplo, dos discos CHD de arcade con el mismo nombre de disco (gds-0027.chd) en las carpetas de dos revisiones del mismo juego (initdv2e e initdv2j) tienen hash distinto y son juegos distintos, no duplicados. Tras elegir 3, el programa ofrece recordar que ese juego no se toca (sección 24)."
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
+    "Antes de preguntar, el programa compara los contenidos: si los dos archivos son idénticos byte a byte elige uno solo, y si son distintos te avisa de que el contenido NO es idéntico (hash MD5 distinto)."
+   ]
+  ]
  },
  {
   "type": "h1",
@@ -4305,7 +4341,7 @@
   "runs": [
    [
     "r",
-    "Cuando dos copias empatan y el programa te pregunta cuál conservar (sección 3), ahora ofrece recordar tu respuesta para las próximas limpiezas. Si aceptas, se guarda en Overrides.json como un \"Prefer\". Con -Yes nunca pregunta ni guarda nada."
+    "Cuando dos copias empatan y el programa te pregunta cuál conservar (sección 3), ahora ofrece recordar tu respuesta para las próximas limpiezas. Si aceptas, se guarda en Overrides.json como un \"Prefer\". Si respondes 3 (conservar todas las copias), ofrece recordar que ese juego no se toca: se guarda como un \"Ignore\" por título, y no se vuelve a preguntar ni a mover. Con -Yes nunca pregunta ni guarda nada."
    ]
   ]
  },
