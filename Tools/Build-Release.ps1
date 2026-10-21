@@ -15,6 +15,10 @@
 #   (CleanRoms-v2.8\...). Asi, descomprimirlo encima de una instalacion
 #   anterior no mezcla archivos viejos con nuevos (el problema de
 #   siempre): se descomprime aparte y se copia lo que se quiera.
+# - Solo incluye lo que ES DEL PROYECTO (una lista blanca: los archivos de
+#   la raiz y las carpetas Config, Modules, Tests y Tools). Cualquier otra
+#   cosa que haya en tu carpeta (scripts tuyos, carpetas de trabajo...) se
+#   queda fuera, aunque no se llame como nada conocido.
 # - NO incluye nada personal ni generado: Config\UserSettings.json,
 #   Config\Overrides.json, los *.custom.json, Logs, Resultado,
 #   crash_log.txt, ni la carpeta .git/.github ni ManualSrc.
@@ -67,10 +71,18 @@ if(Test-Path -LiteralPath $zipPath)
     Remove-Item -LiteralPath $zipPath -Force
 }
 
-# Carpetas de primer nivel que no se incluyen
-$excludedFolders = @(".git", ".github", "dist", "Logs", "Resultado", "ManualSrc")
+# LISTA BLANCA: lo unico que entra en el ZIP. Si anades un archivo o una
+# carpeta nuevos al proyecto y quieres que vayan en la version, anadelos aqui.
+$includedRootFiles = @(
+    "main.ps1", "CleanROMs.bat", "Run-AllTests.bat", "VERSION", "LICENSE",
+    "README.md", "README_ES.md",
+    "CleanROMs_Manual_EN.pdf", "CleanROMs_Manual_ES.pdf",
+    "CleanROMs_Sistemas_y_formatos.xlsx", "CleanROMs_Systems_and_Formats.xlsx"
+)
 
-# Archivos personales o generados (ruta relativa con /)
+$includedFolders = @("Config", "Modules", "Tests", "Tools")
+
+# Dentro de esas carpetas, archivos personales o generados (ruta relativa con /)
 $excludedFiles = @(
     "crash_log.txt",
     "Config/UserSettings.json",
@@ -94,7 +106,14 @@ try
         $relative = [System.IO.Path]::GetRelativePath($rootFull, $file.FullName).Replace('\', '/')
         $topFolder = ($relative -split '/')[0]
 
-        if($relative.Contains('/') -and $excludedFolders -contains $topFolder)
+        if($relative.Contains('/'))
+        {
+            if($includedFolders -notcontains $topFolder)
+            {
+                continue
+            }
+        }
+        elseif($includedRootFiles -notcontains $relative)
         {
             continue
         }

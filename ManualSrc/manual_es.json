@@ -478,7 +478,7 @@
   "runs": [
    [
     "r",
-    "• La pregunta del empate tiene ahora una tercera opción, \"3 = conservar TODAS\", para copias que en realidad son juegos distintos (por ejemplo CHD de arcade con el mismo nombre de disco en carpetas de revisiones distintas); en modo desatendido un empate así conserva todas las copias en vez de mover una (sección 3)."
+    "• Los empates entre copias con contenido distinto (por ejemplo CHD de arcade con el mismo nombre de disco en carpetas de revisiones distintas) son juegos distintos: se conservan todas las copias automáticamente, sin preguntar, y una ejecución desatendida ya no mueve ninguna (sección 3)."
    ]
   ]
  },
@@ -1330,7 +1330,7 @@
   "runs": [
    [
     "r",
-    "Este último paso (preguntarte) solo ocurre cuando de verdad no queda ningún criterio automático que las diferencie — en una colección normal, es poco frecuente, porque el paso 8 (preferir sin comprimir) ya resuelve el caso más habitual (la misma ROM en .zip y sin comprimir). En modo no interactivo (ver sección 21), si el contenido de las dos copias es distinto se conservan TODAS y no se mueve ninguna (antes se conservaba la primera y se movía la otra); si el contenido es idéntico, se elige una automáticamente."
+    "Este último paso (preguntarte) solo ocurre cuando de verdad no queda ningún criterio automático que las diferencie — en una colección normal, es poco frecuente, porque el paso 8 (preferir sin comprimir) ya resuelve el caso más habitual (la misma ROM en .zip y sin comprimir). En modo no interactivo (ver sección 21) nunca pregunta: si el contenido es distinto se conservan TODAS y no se mueve ninguna (antes se conservaba la primera y se movía la otra); si es idéntico, se elige una automáticamente."
    ]
   ],
   "lines": null
@@ -1340,7 +1340,7 @@
   "runs": [
    [
     "b",
-    "Opción 3: conservar TODAS las copias"
+    "Empates entre juegos distintos: se conservan todas las copias"
    ]
   ]
  },
@@ -1349,7 +1349,7 @@
   "runs": [
    [
     "r",
-    "La pregunta ofrece tres respuestas: 1 o 2 conserva esa copia y mueve la otra, y 3 conserva TODAS las copias y no mueve ninguna. Usa la 3 cuando las copias son en realidad juegos distintos que solo se parecen. Por ejemplo, dos discos CHD de arcade con el mismo nombre de disco (gds-0027.chd) en las carpetas de dos revisiones del mismo juego (initdv2e e initdv2j) tienen hash distinto y son juegos distintos, no duplicados. Tras elegir 3, el programa ofrece recordar que ese juego no se toca (sección 24)."
+    "Antes de preguntar nada, el programa compara el contenido de las dos copias empatadas. Si su contenido es DISTINTO (hash MD5 distinto) son juegos distintos, no duplicados, así que se conservan TODAS las copias automáticamente, sin preguntar y sin mover nada, tanto en modo interactivo como desatendido. Por ejemplo, dos discos CHD de arcade con el mismo nombre de disco (gds-0027.chd) en las carpetas de dos revisiones del mismo juego (initdv2e e initdv2j) tienen hash distinto y son juegos distintos. Si los dos archivos son idénticos byte a byte, el programa elige uno solo."
    ]
   ]
  },
@@ -1358,7 +1358,7 @@
   "runs": [
    [
     "r",
-    "Antes de preguntar, el programa compara los contenidos: si los dos archivos son idénticos byte a byte elige uno solo, y si son distintos te avisa de que el contenido NO es idéntico (hash MD5 distinto)."
+    "La pregunta (1, 2 o 3 = conservar TODAS las copias) solo aparece cuando no se pudo comparar el contenido, por ejemplo porque un archivo está bloqueado o es ilegible. Tras elegir 3, el programa ofrece recordar que ese juego no se toca (sección 24)."
    ]
   ]
  },

@@ -58,8 +58,18 @@ foreach($manual in @(@("manual_en.json", "Version"), @("manual_es.json", "Versi√
 # Ninguna version "pegada" en el codigo
 #
 
-$codeFiles = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter *.ps1 |
-    Where-Object { $_.FullName -notmatch '[\\/](Tests|\.git|Logs|Resultado)[\\/]' })
+# Solo el codigo del programa: main.ps1 y las carpetas Modules y Config.
+# La carpeta Tools NO se revisa: es donde el usuario puede guardar sus propias
+# herramientas (p.ej. Calcular-MD5-Excel.ps1), con sus propios textos.
+$codeFiles = @(
+    Get-ChildItem -LiteralPath $Root -Recurse -File -Filter *.ps1 |
+        Where-Object {
+            $relative = [System.IO.Path]::GetRelativePath($Root, $_.FullName)
+            $top = ($relative -split '[\\/]')[0]
+
+            ($relative -eq "main.ps1") -or (@("Modules", "Config") -contains $top)
+        }
+)
 
 $hardcoded = @()
 

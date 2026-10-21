@@ -98,14 +98,16 @@ try
 
     New-Item -ItemType Directory -Path $program -Force | Out-Null
 
-    foreach($item in @(Get-ChildItem -LiteralPath $Root -Force))
+    # Solo lo necesario para ejecutar el programa (no se copia nada mas que
+    # pueda haber en la carpeta del proyecto: scripts propios, resultados...)
+    foreach($name in "main.ps1", "CleanROMs.bat", "VERSION", "Config", "Modules")
     {
-        if($item.Name -in @(".git", ".github", "Logs", "Resultado", "crash_log.txt", "Tests"))
-        {
-            continue
-        }
+        $source = Join-Path $Root $name
 
-        Copy-Item -LiteralPath $item.FullName -Destination $program -Recurse -Force
+        if(Test-Path -LiteralPath $source)
+        {
+            Copy-Item -LiteralPath $source -Destination $program -Recurse -Force
+        }
     }
 
     # Sin UserSettings.json: primer arranque, como en una instalacion nueva

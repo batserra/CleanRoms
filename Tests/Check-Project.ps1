@@ -53,8 +53,22 @@ function Resolve-ExactCasePath {
     return $current
 }
 
+# Solo el codigo DEL PROYECTO: main.ps1, las carpetas Modules, Config y Tests,
+# y de Tools solo Build-Release.ps1. La carpeta Tools es donde el usuario puede
+# guardar sus propias herramientas: no son asunto de esta comprobacion.
+$projectFolders = @("Modules", "Config", "Tests")
+$projectToolFiles = @("Tools/Build-Release.ps1")
+
 $files = @(
     Get-ChildItem -LiteralPath $Root -Recurse -File -Filter *.ps1 |
+        Where-Object {
+            $relative = [System.IO.Path]::GetRelativePath($Root, $_.FullName)
+            $top = ($relative -split '[\\/]')[0]
+
+            ($relative -eq "main.ps1") -or
+            ($projectFolders -contains $top) -or
+            ($projectToolFiles -contains $relative.Replace('\', '/'))
+        } |
         Where-Object { $_.FullName -notmatch '[\\/](\.git|Logs|Resultado)[\\/]' }
 )
 

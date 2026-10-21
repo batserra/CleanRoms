@@ -1,18 +1,19 @@
 ﻿# ============================================================
-# MEJORA: en un empate (misma puntuacion, contenido DISTINTO), ademas de
-# "1" y "2" ahora se puede elegir "3" = conservar TODAS las copias sin
-# mover ninguna.
+# EMPATES (misma puntuacion, ningun criterio las diferencia):
 #
-# Caso real que lo motivo: dos discos CHD de arcade Naomi 2,
-#   naomi2\initdv2e\gds-0027.chd   (Initial D Arcade Stage Ver. 2, Export)
-#   naomi2\initdv2j\gds-0027.chd   (Initial D Arcade Stage Ver. 2, Japan)
-# con el mismo nombre (el del disco GD-ROM) en carpetas de revisiones
-# distintas y hash distinto: NO son duplicados, son juegos distintos.
+# - Contenido DISTINTO (hash distinto): no son copias de un mismo juego
+#   sino juegos distintos que se parecen. Se conservan TODAS, sin mover
+#   ninguna y SIN preguntar (ni en modo interactivo ni con -Yes).
+#   Caso real que lo motivo: dos discos CHD de arcade Naomi 2,
+#     naomi2\initdv2e\gds-0027.chd   (Initial D Arcade Stage Ver. 2, Export)
+#     naomi2\initdv2j\gds-0027.chd   (Initial D Arcade Stage Ver. 2, Japan)
+#   con el mismo nombre de disco en carpetas de revisiones distintas.
+# - Contenido IDENTICO: se elige una sola sin preguntar (como siempre).
+# - NO se pudo comparar el contenido (archivo bloqueado o ilegible): ahi
+#   si hay una duda real. Se pregunta 1 / 2 / 3 (3 = conservar todas) y
+#   con -Yes se conservan todas.
 #
-# Ademas, en modo no interactivo (-Yes) un empate con contenido distinto
-# ya NO conserva la 1 y mueve la otra: se conservan todas (con la duda,
-# no se mueve nada). Con contenido IDENTICO se sigue eligiendo una sin
-# preguntar.
+# La comparacion fallida se simula con un algoritmo de hash invalido.
 # ============================================================
 
 . "$PSScriptRoot\..\..\Modules\logger.ps1"
@@ -24,6 +25,7 @@ $saved = @{
     AutoConfirm   = $Global:AutoConfirm
     Root          = $Global:RetroBatRoot
     Dup           = $Global:DuplicatesFolder
+    Hash          = $Global:Settings.HashAlgorithm
 }
 
 $Global:Settings.Language = "es"
@@ -78,13 +80,16 @@ function Get-Actions
     }
 }
 
-function Set-Answers
+function Set-Mode
 {
-    param([string[]]$Answers, [bool]$Interactive = $true)
+    param([bool]$Interactive, [string]$Compare, [string[]]$Answers = @())
 
     $global:tkAnswers = $Answers
     $global:tkAsked = 0
     $Global:AutoConfirm = (-not $Interactive)
+
+    # "unknown" = no se puede comparar el contenido (algoritmo de hash invalido)
+    $Global:Settings.HashAlgorithm = if($Compare -eq "unknown") { "NOSUCH" } else { $saved.Hash }
 }
 
 try
@@ -95,28 +100,69 @@ try
     }
 
     #
-    # 1) Interactivo: 3 = conservar todas, sin recordar
+    # 1) Contenido distinto, modo interactivo: NO se pregunta, se conservan todas
     #
 
     $f = New-Fixture $initD
-    Set-Answers @("3", "N")
+    Set-Mode -Interactive $true -Compare "real"
 
     $r = Get-Actions $f
 
     Assert-Equal 1 $r.Groups.Count "Initial D: las dos CHD forman un grupo (mismo nombre de disco)"
-    Assert-Equal 2 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Opcion 3: se conservan las DOS copias"
-    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Opcion 3: no se mueve ninguna"
-    Assert-Equal 2 $global:tkAsked "Opcion 3: se pregunta cual conservar y despues si recordarlo (nada mas)"
-    Assert-Equal $false (Test-Path -LiteralPath $Global:OverridesPath) "Opcion 3 + N: no se guarda nada en Overrides.json"
-    Assert-Equal $true (@($r.Actions | Where-Object { $_.Reason -match "contenido distinto" }).Count -ge 1) "Opcion 3: el motivo del plan explica por que se conservan"
-    Assert-Equal $false $Global:TieKeepAll "Opcion 3: la bandera interna se limpia al terminar el grupo"
+    Assert-Equal 0 $global:tkAsked "Contenido distinto (interactivo): no se pregunta nada"
+    Assert-Equal 2 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Contenido distinto (interactivo): se conservan las DOS copias"
+    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Contenido distinto (interactivo): no se mueve ninguna"
+    Assert-Equal $true (@($r.Actions | Where-Object { $_.Reason -match "contenido distinto" }).Count -ge 1) "Contenido distinto: el motivo del plan explica por que se conservan"
+    Assert-Equal $false $Global:TieKeepAll "Contenido distinto: la bandera interna se limpia al terminar el grupo"
 
     #
-    # 2) Interactivo: 3 y recordar -> se guarda como Ignore y ya no se vuelve a tocar
+    # 2) Contenido distinto, modo no interactivo: igual
     #
 
     $f = New-Fixture $initD
-    Set-Answers @("3", "S")
+    Set-Mode -Interactive $false -Compare "real"
+
+    $r = Get-Actions $f
+
+    Assert-Equal 0 $global:tkAsked "Contenido distinto (-Yes): no se pregunta"
+    Assert-Equal 2 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Contenido distinto (-Yes): se conservan las DOS copias"
+    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Contenido distinto (-Yes): NO se mueve ninguna (antes se movia la 2)"
+
+    #
+    # 3) Contenido identico: se elige una sola, sin preguntar
+    #
+
+    $f = New-Fixture @{ "initdv2e/gds-0027.chd" = "mismo contenido"; "initdv2j/gds-0027.chd" = "mismo contenido" }
+
+    foreach($interactive in $true, $false)
+    {
+        Set-Mode -Interactive $interactive -Compare "real"
+
+        $r = Get-Actions $f
+        $label = if($interactive) { "interactivo" } else { "-Yes" }
+
+        Assert-Equal 0 $global:tkAsked "Contenido identico ($label): no se pregunta"
+        Assert-Equal 1 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Contenido identico ($label): se conserva una"
+        Assert-Equal 1 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Contenido identico ($label): se mueve la copia exacta"
+    }
+
+    #
+    # 4) NO se puede comparar el contenido: si se pregunta (1 / 2 / 3)
+    #
+
+    $f = New-Fixture $initD
+    Set-Mode -Interactive $true -Compare "unknown" -Answers @("3", "N")
+
+    $r = Get-Actions $f
+
+    Assert-Equal 2 $global:tkAsked "Sin poder comparar: se pregunta cual conservar y despues si recordarlo"
+    Assert-Equal 2 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Opcion 3: se conservan las DOS copias"
+    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Opcion 3: no se mueve ninguna"
+    Assert-Equal $false (Test-Path -LiteralPath $Global:OverridesPath) "Opcion 3 + N: no se guarda nada en Overrides.json"
+
+    # 3 y recordar: se guarda como Ignore y el grupo ya no se toca
+    $f = New-Fixture $initD
+    Set-Mode -Interactive $true -Compare "unknown" -Answers @("3", "S")
 
     $r = Get-Actions $f
     $o = Get-Overrides
@@ -125,46 +171,16 @@ try
     Assert-Equal "naomi2" $o.Ignore[0].System "Opcion 3 + S: el Ignore lleva el sistema (naomi2)"
     Assert-Equal $r.Groups[0].Name $o.Ignore[0].Title "Opcion 3 + S: el Ignore lleva el titulo del grupo"
 
-    Set-Answers @() $false   # sin interaccion
-
+    Set-Mode -Interactive $false -Compare "real"
     $r2 = Get-Actions $f
 
     Assert-Equal 0 $r2.Actions.Count "Despues de recordarlo: el grupo se ignora (ni conserva ni mueve nada)"
-    Assert-Equal 0 $global:tkAsked "Despues de recordarlo: ya no se pregunta nada"
 
-    #
-    # 3) Modo no interactivo con contenido distinto: se conservan todas
-    #
-
-    $f = New-Fixture $initD
-    Set-Answers @() $false
-
-    $r = Get-Actions $f
-
-    Assert-Equal 0 $global:tkAsked "-Yes con contenido distinto: no se pregunta"
-    Assert-Equal 2 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "-Yes con contenido distinto: se conservan las DOS copias"
-    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "-Yes con contenido distinto: NO se mueve ninguna (antes se movia la 2)"
-
-    #
-    # 4) Modo no interactivo con contenido IDENTICO: se sigue eligiendo una
-    #
-
-    $f = New-Fixture @{ "initdv2e/gds-0027.chd" = "mismo contenido"; "initdv2j/gds-0027.chd" = "mismo contenido" }
-    Set-Answers @() $false
-
-    $r = Get-Actions $f
-
-    Assert-Equal 1 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "-Yes con contenido identico: se conserva una"
-    Assert-Equal 1 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "-Yes con contenido identico: se mueve la copia exacta"
-
-    #
-    # 5) Interactivo: 1 y 2 funcionan como siempre
-    #
-
+    # 1 y 2 funcionan como siempre
     foreach($answer in "1", "2")
     {
         $f = New-Fixture $initD
-        Set-Answers @($answer, "N")
+        Set-Mode -Interactive $true -Compare "unknown" -Answers @($answer, "N")
 
         $r = Get-Actions $f
 
@@ -172,17 +188,27 @@ try
         Assert-Equal 1 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Opcion ${answer}: se mueve la otra"
     }
 
+    # Sin poder comparar y sin nadie que responda (-Yes): se conservan todas
+    $f = New-Fixture $initD
+    Set-Mode -Interactive $false -Compare "unknown"
+
+    $r = Get-Actions $f
+
+    Assert-Equal 0 $global:tkAsked "Sin poder comparar (-Yes): no se pregunta"
+    Assert-Equal 2 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Sin poder comparar (-Yes): se conservan las dos"
+    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Sin poder comparar (-Yes): no se mueve ninguna"
+
     #
-    # 6) "Conservar todas" en un grupo no se contagia al siguiente
+    # 5) "Conservar todas" en un grupo no se contagia al siguiente
     #
 
     $f = New-Fixture @{
         "initdv2e/gds-0027.chd" = "exportacion"
         "initdv2j/gds-0027.chd" = "japon"
-        "Alpha (USA).chd"        = "alpha usa"
-        "Alpha (Europe).chd"     = "alpha europe"
+        "Alpha (USA).chd"       = "alpha usa"
+        "Alpha (Europe).chd"    = "alpha europe"
     }
-    Set-Answers @("3", "N")
+    Set-Mode -Interactive $true -Compare "real"
 
     $r = Get-Actions $f
 
@@ -191,22 +217,32 @@ try
     Assert-Equal 1 @($r.Actions | Where-Object { (Split-Path $_.Source -Leaf) -like "Alpha*" -and $_.Action -eq "MOVE" }).Count "Dos grupos: Alpha SI mueve una copia (la bandera no se contagia)"
 
     #
-    # 7) Tres copias empatadas: se pregunta una sola vez
+    # 6) Tres copias con contenido distinto: se conservan las tres sin preguntar
     #
 
     $f = New-Fixture @{ "a/gds-0100.chd" = "uno"; "b/gds-0100.chd" = "dos"; "c/gds-0100.chd" = "tres" }
-    Set-Answers @("3", "N", "9", "9")
+    Set-Mode -Interactive $true -Compare "real"
 
     $r = Get-Actions $f
 
-    Assert-Equal 3 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Tres copias: se conservan las tres"
-    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Tres copias: no se mueve ninguna"
-    Assert-Equal 2 $global:tkAsked "Tres copias: se pregunta una sola vez (mas la pregunta de recordar), no por cada pareja"
+    Assert-Equal 3 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Tres copias distintas: se conservan las tres"
+    Assert-Equal 0 @($r.Actions | Where-Object { $_.Action -eq "MOVE" }).Count "Tres copias distintas: no se mueve ninguna"
+    Assert-Equal 0 $global:tkAsked "Tres copias distintas: no se pregunta nada"
+
+    # ... y si no se puede comparar, se pregunta UNA sola vez (no por cada pareja)
+    $f = New-Fixture @{ "a/gds-0100.chd" = "uno"; "b/gds-0100.chd" = "dos"; "c/gds-0100.chd" = "tres" }
+    Set-Mode -Interactive $true -Compare "unknown" -Answers @("3", "N", "9", "9")
+
+    $r = Get-Actions $f
+
+    Assert-Equal 3 @($r.Actions | Where-Object { $_.Action -eq "KEEP" }).Count "Tres copias sin comparar: opcion 3 conserva las tres"
+    Assert-Equal 2 $global:tkAsked "Tres copias sin comparar: se pregunta una sola vez (mas la de recordar)"
 }
 finally
 {
     Remove-Item Function:\Read-Host -ErrorAction SilentlyContinue
 
+    $Global:Settings.HashAlgorithm = $saved.Hash
     $Global:OverridesPath = $saved.OverridesPath
     $Global:Settings.Language = $saved.Language
     $Global:Settings.PreviewOnly = $saved.PreviewOnly

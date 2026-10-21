@@ -227,7 +227,7 @@ function Save-HashCache {
     }
 
     $path = Get-HashCachePath
-    $temp = "$path.tmp"
+    $temp = "$path.$PID.tmp"
 
     try
     {
@@ -254,9 +254,42 @@ function Save-HashCache {
         }
 
         [System.IO.File]::WriteAllLines($temp, $lines, (New-Object System.Text.UTF8Encoding($false)))
-        Move-Item -LiteralPath $temp -Destination $path -Force
 
-        $Global:HashCacheDirty = $false
+        #
+        # En Windows, el antivirus o el indexador de busqueda pueden tener
+        # el archivo abierto un instante justo despues de escribirlo (se vio
+        # al guardar la cache varias veces seguidas: "The process cannot
+        # access the file because it is being used by another process").
+        # Se reintenta unas veces con una espera corta. Y -ErrorAction Stop
+        # hace que el fallo llegue al catch en vez de imprimirse en pantalla
+        # (Move-Item sin eso solo lanza un error "no terminante").
+        #
+
+        $replaced = $false
+
+        for($attempt = 1; $attempt -le 6 -and -not $replaced; $attempt++)
+        {
+            try
+            {
+                Move-Item -LiteralPath $temp -Destination $path -Force -ErrorAction Stop
+                $replaced = $true
+            }
+            catch
+            {
+                Start-Sleep -Milliseconds (100 * $attempt)
+            }
+        }
+
+        if($replaced)
+        {
+            $Global:HashCacheDirty = $false
+        }
+        else
+        {
+            # La cache es solo un acelerador: si no se puede guardar ahora, se
+            # guardara en el siguiente intento. Se limpia el temporal.
+            Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+        }
     }
     catch
     {

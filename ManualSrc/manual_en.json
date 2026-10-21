@@ -478,7 +478,7 @@
   "runs": [
    [
     "r",
-    "• The tie question now has a third option, \"3 = keep ALL\", for copies that are really different games (for example arcade CHDs with the same disc name in different revision folders); in unattended mode such a tie keeps all copies instead of moving one (section 3)."
+    "• Ties between copies with different content (for example arcade CHDs with the same disc name in different revision folders) are different games: all copies are kept automatically, without asking, and an unattended run no longer moves one of them (section 3)."
    ]
   ]
  },
@@ -1330,7 +1330,7 @@
   "runs": [
    [
     "r",
-    "This last step (asking you) only happens when there truly is no automatic criterion left to tell them apart — in a normal collection this is uncommon, because step 8 (preferring the uncompressed one) already resolves the most typical case (the same ROM as a .zip and uncompressed). In non-interactive mode (see section 21), if the contents of the two copies differ, ALL the copies are kept and none is moved (before, the first was kept and the other was moved); if the contents are identical, one is chosen automatically."
+    "This last step (asking you) only happens when there truly is no automatic criterion left to tell them apart — in a normal collection this is uncommon, because step 8 (preferring the uncompressed one) already resolves the most typical case (the same ROM as a .zip and uncompressed). In non-interactive mode (see section 21) it never asks: if the contents differ, ALL the copies are kept and none is moved (before, the first was kept and the other was moved); if they are identical, one is chosen automatically."
    ]
   ],
   "lines": null
@@ -1340,7 +1340,7 @@
   "runs": [
    [
     "b",
-    "Option 3: keep ALL copies"
+    "Ties between different games: all copies are kept"
    ]
   ]
  },
@@ -1349,7 +1349,7 @@
   "runs": [
    [
     "r",
-    "The question offers three answers: 1 or 2 keeps that copy and moves the other, and 3 keeps ALL the copies and moves none. Use 3 when the copies are really different games that merely look alike. For example, two arcade CHD discs with the same disc name (gds-0027.chd) in the folders of two revisions of the same game (initdv2e and initdv2j) have a different hash and are different games, not duplicates. After choosing 3 the program offers to remember that the game is not touched (section 24)."
+    "Before asking anything, the program compares the contents of the two tied copies. If their content DIFFERS (different MD5 hash) they are different games, not duplicates, so ALL the copies are kept automatically, without asking and without moving anything, in interactive and unattended mode alike. For example, two arcade CHD discs with the same disc name (gds-0027.chd) in the folders of two revisions of the same game (initdv2e and initdv2j) have a different hash and are different games. If the two files are byte-identical, the program chooses one by itself."
    ]
   ]
  },
@@ -1358,7 +1358,7 @@
   "runs": [
    [
     "r",
-    "Before asking, the program compares the contents: if the two files are byte-identical it chooses one by itself, and if they differ it warns you that the content is NOT identical (different MD5 hash)."
+    "The question (1, 2, or 3 = keep ALL the copies) only appears when the content could not be compared, for example because a file is locked or unreadable. After choosing 3 the program offers to remember that the game is not touched (section 24)."
    ]
   ]
  },

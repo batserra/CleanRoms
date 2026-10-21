@@ -153,10 +153,10 @@ Everything below is described in detail in its own section further down.
   "# Hacks y Otros #" follow the files to their new path.
 - Manual decisions that stick (Config\Overrides.json): "Prefer" a specific
   ROM or "Ignore" a group, and the program offers to remember your tie-break
-  answers. The tie question now also offers "3 = keep ALL, moving none" (for
-  copies that are really different games, such as arcade CHDs with the same
-  disc name in different revision folders); in unattended mode (-Yes) such a
-  tie keeps all copies instead of moving one.
+  answers. Ties between copies with DIFFERENT content (for example arcade
+  CHDs with the same disc name in different revision folders) are different
+  games, so all copies are kept automatically without asking, and an
+  unattended (-Yes) run no longer moves one of them.
 - Hash cache (Resultado\HashCache.tsv): unchanged files are not hashed again;
   deduplicating hacks skips files whose size is unique.
 - Purge of _duplicates (menu option 6 or -Action Purge): deletes copies that
@@ -335,16 +335,17 @@ say so once and it is respected in every cleanup, including scheduled
   "*", to apply to every system. Names are not case-sensitive.
 - When the program asks you which of two tied ROMs to keep, it now offers
   to remember your answer: it is saved here as a "Prefer".
-- The tie question has a THIRD option: "3 = keep ALL" (moving none). Use it
-  when the copies are really different games that happen to look alike, for
-  example two arcade CHD discs with the same disc name (gds-0027.chd) in the
-  folders of two revisions (initdv2e and initdv2j). If you choose 3, it also
-  offers to remember that the game is not touched: it is saved here as an
-  "Ignore" by title, so it is never asked about (or moved) again.
-- In unattended mode (-Yes), a tie between copies with DIFFERENT content no
-  longer keeps the first and moves the other: ALL copies are kept and
-  nothing is moved. Copies with identical content are still resolved
-  automatically.
+- When two copies tie (same score) and their content DIFFERS (different
+  hash), they are different games, not duplicates, so ALL copies are kept
+  automatically, WITHOUT asking and without moving anything, in interactive
+  and unattended (-Yes) mode alike. Example: two arcade CHD discs with the
+  same disc name in the folders of two revisions (initdv2e\gds-0027.chd and
+  initdv2j\gds-0027.chd). With byte-identical content, one is chosen
+  automatically as always.
+- The tie question (1 / 2 / "3 = keep ALL") now only appears when the content
+  could NOT be compared (a locked or unreadable file). If you choose 3, it
+  also offers to remember that the game is not touched: it is saved here as
+  an "Ignore" by title. With -Yes, such a tie keeps all copies.
 - If the file doesn't exist, nothing changes. If it can't be read, you get
   a warning and it is ignored (the program never overwrites a file it
   can't read).

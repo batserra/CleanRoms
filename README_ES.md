@@ -172,10 +172,10 @@ Todo lo que sigue se explica con detalle en su propia sección más abajo.
 - Decisiones manuales que se recuerdan (Config\Overrides.json): "Prefer"
   para fijar una ROM o "Ignore" para dejar un grupo intacto, y el programa
   ofrece recordar tus respuestas en los empates. La pregunta del empate
-  ofrece ahora también "3 = conservar TODAS sin mover ninguna" (para copias
-  que en realidad son juegos distintos, como CHD de arcade con el mismo
-  nombre de disco en carpetas de revisiones distintas); en modo desatendido
-  (-Yes) un empate así conserva todas las copias en vez de mover una.
+  los empates entre copias con contenido DISTINTO (por ejemplo CHD de arcade
+  con el mismo nombre de disco en carpetas de revisiones distintas) son
+  juegos distintos, así que se conservan todas las copias automáticamente
+  sin preguntar, y una ejecución desatendida (-Yes) ya no mueve ninguna.
 - Caché de hashes (Resultado\HashCache.tsv): los archivos que no han
   cambiado no se vuelven a hashear; al deduplicar hacks se saltan los
   archivos de tamaño único.
@@ -364,16 +364,17 @@ Config\Overrides.example.json):
   omite, o es "*", vale para todos. No distingue mayúsculas.
 - Cuando el programa te pregunta cuál de dos ROMs empatadas conservar,
   ahora ofrece recordar tu respuesta: se guarda aquí como un "Prefer".
-- La pregunta del empate tiene una TERCERA opción: "3 = conservar TODAS"
-  (sin mover ninguna). Úsala cuando las copias son en realidad juegos
-  distintos que se parecen, por ejemplo dos discos CHD de arcade con el mismo
-  nombre de disco (gds-0027.chd) en las carpetas de dos revisiones
-  (initdv2e e initdv2j). Si eliges 3, también ofrece recordar que ese juego
-  no se toca: se guarda aquí como un "Ignore" por título, y no se vuelve a
-  preguntar (ni a mover) nunca más.
-- En modo desatendido (-Yes), un empate entre copias con contenido DISTINTO
-  ya no conserva la primera y mueve la otra: se conservan TODAS y no se mueve
-  nada. Las copias con contenido idéntico se siguen resolviendo solas.
+- Cuando dos copias empatan (misma puntuación) y su contenido es DISTINTO
+  (hash distinto), son juegos distintos, no duplicados, así que se conservan
+  TODAS automáticamente, SIN preguntar y sin mover nada, tanto en modo
+  interactivo como desatendido (-Yes). Ejemplo: dos discos CHD de arcade con
+  el mismo nombre de disco en las carpetas de dos revisiones
+  (initdv2e\gds-0027.chd e initdv2j\gds-0027.chd). Con contenido idéntico
+  byte a byte, se elige una sola automáticamente como siempre.
+- La pregunta del empate (1 / 2 / "3 = conservar TODAS") ahora solo aparece
+  cuando NO se pudo comparar el contenido (un archivo bloqueado o ilegible).
+  Si eliges 3, también ofrece recordar que ese juego no se toca: se guarda
+  aquí como un "Ignore" por título. Con -Yes, un empate así conserva todas.
 - Si el archivo no existe, no cambia nada. Si no se puede leer, avisa y
   se ignora (el programa nunca sobrescribe un archivo que no puede leer).
 

@@ -514,6 +514,31 @@ function Resolve-RomTie {
         return $A
     }
 
+    #
+    # Contenido DISTINTO (hash distinto) y misma puntuacion: no son copias
+    # de un mismo juego sino juegos distintos que se parecen (por ejemplo,
+    # dos discos CHD de arcade con el mismo nombre de disco en las carpetas
+    # de dos revisiones: initdv2e\gds-0027.chd e initdv2j\gds-0027.chd).
+    # No hay nada que preguntar: se conservan TODAS, sin mover ninguna.
+    #
+
+    if($identical -eq $false)
+    {
+        $Global:TieKeepAll = $true
+
+        Write-Host ""
+        Write-Host (T "tie.differentKeepAll" $Global:Settings.HashAlgorithm) -ForegroundColor Yellow
+        Write-Host " - $($A.FullPath)"
+        Write-Host " - $($B.FullPath)"
+
+        return $A
+    }
+
+    #
+    # Aqui solo se llega si NO se pudo comparar el contenido (un archivo
+    # ilegible o bloqueado): ahi si hay una duda real que preguntar.
+    #
+
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Magenta
     Write-Host (T "tie.title")
@@ -521,10 +546,7 @@ function Resolve-RomTie {
     Write-Host ""
     Write-Host (T "tie.explanation" $A.Score)
 
-    if($identical -eq $false)
-    {
-        Write-Host (T "tie.differentContent" $Global:Settings.HashAlgorithm) -ForegroundColor Yellow
-    }
+    Write-Host (T "tie.contentNotComparable") -ForegroundColor Yellow
 
     Write-Host ""
     Write-Host " 1) $($A.FullPath)"

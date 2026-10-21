@@ -26,6 +26,18 @@ $personal = @(
 
 $createdPersonal = @()
 
+# Cosas AJENAS al proyecto que puede haber en la carpeta (un script propio,
+# una carpeta de trabajo con subcarpetas "Logs"/"dist"...): NO deben entrar en
+# el ZIP. Se crean aqui y se borran al terminar.
+$extraItems = @(
+    (Join-Path $Root "Calcular-Extra-Personal.ps1"),
+    (Join-Path $Root "notas-personales.txt"),
+    (Join-Path $Root "ZzExtraPersonal/Logs/script.ps1"),
+    (Join-Path $Root "ZzExtraPersonal/dist/otro.ps1")
+)
+
+$createdExtras = @()
+
 try
 {
     foreach($p in $personal)
@@ -35,6 +47,13 @@ try
             Set-Content -LiteralPath $p -Value "{}"
             $createdPersonal += $p
         }
+    }
+
+    foreach($extra in $extraItems)
+    {
+        New-Item -ItemType Directory -Path (Split-Path $extra -Parent) -Force | Out-Null
+        Set-Content -LiteralPath $extra -Value "ajeno al proyecto"
+        $createdExtras += $extra
     }
 
     $out = Join-Path $tempRoot "dist"
@@ -71,7 +90,29 @@ try
         Assert-Equal $false ($names -contains ($prefix + $mustNot)) "Release: NO incluye $mustNot (es personal)"
     }
 
-    Assert-Equal 0 @($names | Where-Object { $_ -match '/(\.git|\.github|Logs|Resultado|ManualSrc|dist)/' }).Count "Release: sin .git, .github, Logs, Resultado, ManualSrc ni dist"
+    $badTop = @($names | Where-Object { $_ -match ('^' + [regex]::Escape($prefix) + '(\.git|\.github|Logs|Resultado|ManualSrc|dist)/') })
+
+    Assert-Equal 0 $badTop.Count "Release: sin .git, .github, Logs, Resultado, ManualSrc ni dist en la raiz ($($badTop -join ', '))"
+
+    $foreign = @($names | Where-Object { $_ -match 'Personal|Calcular-Extra' })
+
+    Assert-Equal 0 $foreign.Count "Release: no entra NADA ajeno al proyecto (scripts propios, carpetas de trabajo...) ($($foreign -join ', '))"
+
+    # Todo lo que entra es un archivo conocido de la raiz o esta dentro de Config, Modules, Tests o Tools
+    $knownRoot = @("main.ps1", "CleanROMs.bat", "Run-AllTests.bat", "VERSION", "LICENSE", "README.md", "README_ES.md", "CleanROMs_Manual_EN.pdf", "CleanROMs_Manual_ES.pdf", "CleanROMs_Sistemas_y_formatos.xlsx", "CleanROMs_Systems_and_Formats.xlsx")
+
+    $unexpected = @($names | Where-Object {
+        $rel = $_.Substring($prefix.Length)
+        $isDirectory = $rel.EndsWith("/") -or $rel -eq ""
+
+        if($isDirectory) { return $false }
+
+        if($rel.Contains("/")) { return -not (@("Config", "Modules", "Tests", "Tools") -contains $rel.Split("/")[0]) }
+
+        return -not ($knownRoot -contains $rel)
+    })
+
+    Assert-Equal 0 $unexpected.Count "Release: solo entran archivos del proyecto (lista blanca) ($($unexpected -join ', '))"
 
     $sha = (Get-Content -LiteralPath "$zipPath.sha256" -Raw).Trim()
     $actual = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -92,6 +133,9 @@ try
 finally
 {
     foreach($p in $createdPersonal) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue }
+
+    foreach($extra in $createdExtras) { Remove-Item -LiteralPath $extra -Force -ErrorAction SilentlyContinue }
+    Remove-Item -LiteralPath (Join-Path $Root "ZzExtraPersonal") -Recurse -Force -ErrorAction SilentlyContinue
 
     Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

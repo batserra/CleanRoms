@@ -24,6 +24,13 @@ $Global:OverridesPath = $ovFile
 $Global:Settings.Language = "es"
 $Global:OverrideContextSystem = "snes"
 
+# La pregunta del empate solo sale cuando NO se puede comparar el contenido
+# (con contenido distinto se conservan todas sin preguntar, y con contenido
+# identico se elige una sola). Un algoritmo de hash invalido hace que la
+# comparacion falle, y asi se llega a la pregunta.
+$savedHashAlgorithm = $Global:Settings.HashAlgorithm
+$Global:Settings.HashAlgorithm = "NOSUCH"
+
 $global:testAnswers = @()
 $global:testAsked = 0
 
@@ -97,6 +104,7 @@ finally
 {
     Remove-Item Function:\Read-Host -ErrorAction SilentlyContinue
 
+    $Global:Settings.HashAlgorithm = $savedHashAlgorithm
     $Global:OverridesPath = $saved.OverridesPath
     $Global:Settings.Language = $saved.Language
     $Global:AutoConfirm = $saved.AutoConfirm
