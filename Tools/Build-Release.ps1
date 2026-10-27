@@ -12,7 +12,7 @@
 # etiqueta "v<VERSION>".
 #
 # - El ZIP lleva TODO dentro de UNA carpeta con la version
-#   (CleanRoms-v2.8\...). Asi, descomprimirlo encima de una instalacion
+#   (CleanRoms-v2.8.1\...). Asi, descomprimirlo encima de una instalacion
 #   anterior no mezcla archivos viejos con nuevos (el problema de
 #   siempre): se descomprime aparte y se copia lo que se quiera.
 # - Solo incluye lo que ES DEL PROYECTO (una lista blanca: los archivos de
@@ -23,14 +23,14 @@
 #   Config\Overrides.json, los *.custom.json, Logs, Resultado,
 #   crash_log.txt, ni la carpeta .git/.github ni ManualSrc.
 # - Con -Tag se comprueba que la etiqueta coincide con VERSION
-#   (v2.8 <-> 2.8); si no, falla sin crear nada.
+#   (v2.8.1 <-> 2.8.1); si no, falla sin crear nada.
 # ============================================================
 
 param(
     # Carpeta donde se deja el ZIP (por defecto dist\ dentro del proyecto)
     [string]$OutputFolder = "",
 
-    # Etiqueta de GitHub a comprobar contra VERSION (p.ej. "v2.8")
+    # Etiqueta de GitHub a comprobar contra VERSION (p.ej. "v2.8.1")
     [string]$Tag = ""
 )
 

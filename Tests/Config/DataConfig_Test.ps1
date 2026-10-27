@@ -65,8 +65,8 @@ try
 
     Import-DataConfig -ConfigFolder $realConfig 3>$null
 
-    Assert-Equal 104 $Global:SystemPaths.Count "Config entregada: 104 sistemas (63 + 41 de la tabla de RetroBat 8.2.1)"
-    Assert-Equal 176 @($Global:RomExtensions).Count "Config entregada: 176 extensiones (113 + 63 de la tabla de RetroBat 8.2.1)"
+    Assert-Equal 105 $Global:SystemPaths.Count "Config entregada: 105 sistemas (63 + 41 de la tabla de RetroBat 8.2.1 + PS4 de RetroBat 8.3.1.1)"
+    Assert-Equal 182 @($Global:RomExtensions).Count "Config entregada: 182 extensiones (113 + 63 de RetroBat 8.2.1 + 6 de RetroBat 8.3.1.1)"
     Assert-Equal 12 @($Global:IgnoredFolders).Count "Config entregada: 12 carpetas ignoradas"
 
     #
@@ -76,6 +76,20 @@ try
     foreach($folder in "sega32x", "atari5200", "jaguar", "pcenginecd", "neogeocd", "vic20", "amigacd32", "naomi2", "scummvm", "pico8", "virtualboy", "n64dd")
     {
         Assert-Equal $true (@($Global:SystemPaths.Values) -contains $folder) "Config entregada: incluye el sistema '$folder'"
+    }
+
+    # Novedades de RetroBat 8.3.1.1: PS4 y sus extensiones seguras
+    Assert-Equal $true (@($Global:SystemPaths.Values) -contains "ps4") "Config entregada: incluye el sistema 'ps4' (RetroBat 8.3.1.1)"
+
+    foreach($ext in ".ps4", ".zar", ".xcp", ".xbox360", ".68k", ".sgd")
+    {
+        Assert-Equal $true (@($Global:RomExtensions) -contains $ext) "Config entregada: incluye la extension '$ext' (RetroBat 8.3.1.1)"
+    }
+
+    # Acompanantes/descriptores sin logica de agrupacion: nunca como ROM
+    foreach($ext in ".mds", ".mdf", ".toc", ".cbn", ".decomp")
+    {
+        Assert-Equal $false (@($Global:RomExtensions) -contains $ext) "Config entregada: NO incluye '$ext' (acompanante o generica; sus medios se protegen en MediaCleaner)"
     }
 
     # Los nombres antiguos de carpeta siguen funcionando (quien tenga RetroBat anterior)

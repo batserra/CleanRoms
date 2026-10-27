@@ -18,7 +18,7 @@
   "runs": [
    [
     "r",
-    "Complete User Manual — Version 2.8"
+    "Complete User Manual — Version 2.8.1"
    ]
   ],
   "lines": null
@@ -76,7 +76,7 @@
   "runs": [
    [
     "r",
-    "• What's new in version 2.8"
+    "• What's new in versions 2.8.1 and 2.8"
    ]
   ]
  },
@@ -424,7 +424,43 @@
   "runs": [
    [
     "b",
-    "What's new in version 2.8"
+    "What's new in versions 2.8.1 and 2.8"
+   ]
+  ]
+ },
+ {
+  "type": "h2",
+  "runs": [
+   [
+    "b",
+    "Version 2.8.1 (on top of 2.8)"
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
+    "• New systems and formats from RetroBat 8.3.1.1: the PS4 system and the formats .ps4, .zar, .xcp, .xbox360, .68k and .sgd (105 systems and 182 formats in total, see CleanROMs_Systems_and_Formats.xlsx). Not added, on purpose: .app, .decomp, .elf, .lnk, .wad (generic or launcher files) and .mds, .mdf, .toc, .cbn (companion files of a disc image that the program does not group)."
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
+    "• Fixed: the cleanup of orphaned images, videos and manuals moved the media of games that do exist but are stored as a folder (PS3 \"Game.ps3\", PS4 \"Game.ps4\") or as a file the program does not treat as a ROM (.decomp, .wad, .mds...). That media is now left alone."
+   ]
+  ]
+ },
+ {
+  "type": "h2",
+  "runs": [
+   [
+    "b",
+    "Version 2.8"
    ]
   ]
  },
@@ -496,7 +532,7 @@
   "runs": [
    [
     "r",
-    "• Purge of _duplicates, menu option 6 or -Action Purge: the only thing that deletes files, always after showing the list and asking (section 27). The menu now has 7 options (section 13)."
+    "• Purge of _duplicates, menu option 6 or -Action Purge: the only thing that deletes files (old copies, or EVERYTHING with 0 days), always after showing the list and asking (section 27). The menu now has 7 options (section 13)."
    ]
   ]
  },
@@ -1957,16 +1993,13 @@
   "lines": null
  },
  {
-  "type": "para",
-  "page": 9,
-  "x0": 67.2,
+  "type": "h2",
   "runs": [
    [
-    "r",
-    "File format:"
+    "b",
+    "File format"
    ]
-  ],
-  "lines": null
+  ]
  },
  {
   "type": "code",
@@ -1982,16 +2015,13 @@
   ]
  },
  {
-  "type": "para",
-  "page": 9,
-  "x0": 67.2,
+  "type": "h2",
   "runs": [
    [
-    "r",
-    "How to add a new alias yourself:"
+    "b",
+    "How to add a new alias yourself"
    ]
-  ],
-  "lines": null
+  ]
  },
  {
   "type": "para",
@@ -2862,7 +2892,7 @@
    ],
    [
     "i",
-    "6) Purge _duplicates (DELETE old copies)"
+    "6) Purge _duplicates (DELETE old copies or EVERYTHING)"
    ],
    [
     "br",
@@ -3091,7 +3121,7 @@
   "runs": [
    [
     "b",
-    "Option 6 — Purge _duplicates (DELETE old copies)"
+    "Option 6 — Purge _duplicates (DELETE old copies or EVERYTHING)"
    ]
   ]
  },
@@ -3100,7 +3130,7 @@
   "runs": [
    [
     "r",
-    "The only option that deletes files for real. It deletes the copies that have been in _duplicates for N days or more, after showing you the list and asking for confirmation. See section 27 for the full detail."
+    "The only option that deletes files for real. It deletes the copies that have been in _duplicates for N days or more, after showing you the list and asking for confirmation. See section 27 for the full detail. Entering 0 at the days question deletes EVERYTHING in _duplicates, however recent."
    ]
   ]
  },
@@ -3887,7 +3917,7 @@
    ],
    [
     "-OlderThanDays <n>",
-    "Only with -Action Purge: delete the copies that have been in _duplicates for this many days or more (1 to 3650). If omitted, PurgeDuplicatesAfterDays from Config\\Settings.ps1 is used (90 by default)"
+    "Only with -Action Purge: delete the copies that have been in _duplicates for this many days or more (0 to 3650; 0 = delete EVERYTHING there, however recent). If omitted, PurgeDuplicatesAfterDays from Config\\Settings.ps1 is used (90 by default)"
    ],
    [
     "-Yes",
@@ -4512,7 +4542,7 @@
   "runs": [
    [
     "r",
-    "_duplicates only ever grows. Option 6 deletes the copies that have been there for N days or more (PurgeDuplicatesAfterDays in Config\\Settings.ps1, 90 by default; the menu asks for the number and pressing Enter keeps the default). It is the only thing in the whole program that deletes files for real, so it is deliberately careful:"
+    "_duplicates only ever grows. Option 6 deletes the copies that have been there for N days or more (PurgeDuplicatesAfterDays in Config\\Settings.ps1, 90 by default; the menu asks for the number: pressing Enter keeps the default and 0 deletes EVERYTHING there now). It is the only thing in the whole program that deletes files for real, so it is deliberately careful:"
    ]
   ]
  },
@@ -4549,6 +4579,24 @@
    [
     "r",
     "• With PreviewOnly it only simulates. A file that cannot be deleted is reported without stopping the others (exit code 2 in unattended mode)."
+   ]
+  ]
+ },
+ {
+  "type": "h2",
+  "runs": [
+   [
+    "b",
+    "Deleting everything at once (0 days)"
+   ]
+  ]
+ },
+ {
+  "type": "para",
+  "runs": [
+   [
+    "r",
+    "Age is counted from when a file was moved, so right after a cleanup nothing is old enough yet and the purge deletes nothing. To empty _duplicates straight away, answer 0 to the days question in the menu, or use -OlderThanDays 0. That deletes EVERY file in _duplicates, including what was moved a minute ago and files with no known move date. The confirmation message says so (\"ALL the files in _duplicates will be PERMANENTLY DELETED\"), PreviewOnly only simulates it, and with -Yes it does not ask. If no file is old enough for the days you asked, the program tells you how many files there are and how to delete them anyway."
    ]
   ]
  },
@@ -4723,7 +4771,7 @@
   "runs": [
    [
     "r",
-    "This version adds 41 systems and 63 ROM formats from the RetroBat 8.2.1 table (104 systems and 176 formats in total): for example Sega 32X, Atari 5200, NEC SuperGrafx, PC Engine CD, Neo Geo CD, Virtual Boy, VIC-20, Apple IIGS, Amiga CD32, the Naomi 2 and Triforce arcades, ScummVM, and PICO-8. The newer RetroBat folder names (jaguar, colecovision, atarilynx, 3ds, amstradgx4000, ngp) are added next to the old ones, so both old and new RetroBat installations work. The file CleanROMs_Systems_and_Formats.xlsx lists everything supported, marks what is new, and explains each exclusion (a Spanish version, CleanROMs_Sistemas_y_formatos.xlsx, is included too)."
+    "This version adds 41 systems and 63 ROM formats from the RetroBat 8.2.1 table (105 systems and 182 formats in total, counting PlayStation 4 and 6 more formats from RetroBat 8.3.1.1: .ps4, .zar, .xcp, .xbox360, .68k, .sgd): for example Sega 32X, Atari 5200, NEC SuperGrafx, PC Engine CD, Neo Geo CD, Virtual Boy, VIC-20, Apple IIGS, Amiga CD32, the Naomi 2 and Triforce arcades, ScummVM, and PICO-8. Media of games stored as a folder (PS3/PS4) or as files not treated as ROMs (.decomp, .wad, .mds...) is no longer moved as orphaned. The newer RetroBat folder names (jaguar, colecovision, atarilynx, 3ds, amstradgx4000, ngp) are added next to the old ones, so both old and new RetroBat installations work. The file CleanROMs_Systems_and_Formats.xlsx lists everything supported, marks what is new, and explains each exclusion (a Spanish version, CleanROMs_Sistemas_y_formatos.xlsx, is included too)."
    ]
   ]
  },
@@ -4777,16 +4825,16 @@
   "runs": [
    [
     "r",
-    "The project includes the workflow .github\\workflows\\release.yml. To publish version 2.8, for example:"
+    "The project includes the workflow .github\\workflows\\release.yml. To publish version 2.8.1, for example:"
    ]
   ]
  },
  {
   "type": "code",
   "lines": [
-   "(1) Put 2.8 in the VERSION file and commit it",
-   "(2) git tag v2.8",
-   "(3) git push origin v2.8"
+   "(1) Put 2.8.1 in the VERSION file and commit it",
+   "(2) git tag v2.8.1",
+   "(3) git push origin v2.8.1"
   ]
  },
  {
@@ -4794,7 +4842,7 @@
   "runs": [
    [
     "r",
-    "The workflow then checks that the tag (v2.8) matches the VERSION file, runs the checks and the whole test suite on Windows, builds CleanRoms-v2.8.zip together with its SHA256 file, and publishes a GitHub Release with both attached. If the tag and VERSION do not match, nothing is published."
+    "The workflow then checks that the tag (v2.8.1) matches the VERSION file, runs the checks and the whole test suite on Windows, builds CleanRoms-v2.8.1.zip together with its SHA256 file, and publishes a GitHub Release with both attached. If the tag and VERSION do not match, nothing is published."
    ]
   ]
  },
@@ -4812,7 +4860,7 @@
   "runs": [
    [
     "r",
-    "• Everything goes inside a single folder named with the version (CleanRoms-v2.8). Unzipping it over an older installation therefore never mixes old and new files: unzip it on its own and copy over what you want to keep."
+    "• Everything goes inside a single folder named with the version (CleanRoms-v2.8.1). Unzipping it over an older installation therefore never mixes old and new files: unzip it on its own and copy over what you want to keep."
    ]
   ]
  },

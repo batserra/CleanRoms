@@ -1,6 +1,6 @@
 # CleanROMs - publicacion de una version
 #
-# Al subir una etiqueta "v<VERSION>" (por ejemplo v2.8, donde 2.8 es lo
+# Al subir una etiqueta "v<VERSION>" (por ejemplo v2.8.1, donde 2.8.1 es lo
 # que dice el archivo VERSION):
 #   1. Comprueba que la etiqueta coincide con VERSION.
 #   2. Pasa las comprobaciones y los tests.
@@ -9,8 +9,8 @@
 #   4. Publica una Release en GitHub con el ZIP adjunto.
 #
 # Para publicar:
-#   git tag v2.8
-#   git push origin v2.8
+#   git tag v2.8.1
+#   git push origin v2.8.1
 
 name: Release
 

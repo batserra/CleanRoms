@@ -16,6 +16,18 @@
 $Global:OrphanedMediaFolders = @("images", "videos", "manuals")
 
 #
+# Extensiones que NO son "ROMs" para CleanROMs (no se agrupan ni se
+# mueven como duplicados: son lanzadores, acompanantes o genericas),
+# pero que SI indican que el juego existe. Solo se usan aqui, para
+# no mandar a _duplicates los medios de un juego cuyo archivo es de
+# estos tipos (p.ej. "Juego.decomp", "Juego.wad", "Juego.mds").
+#
+
+$Global:MediaProtectExtensions = @(
+    ".app", ".cbn", ".decomp", ".elf", ".lnk", ".mdf", ".mds", ".toc", ".wad"
+)
+
+#
 # Sufijos que RetroBat/Skyscraper añaden al nombre de la ROM al
 # descargar medios de ScreenScraper (p.ej. "Juego-marquee.png").
 # Se comprueban de más largo a más corto para que un sufijo que
@@ -96,6 +108,50 @@ function Find-OrphanedMedia {
             ForEach-Object { $_.BaseName } |
             Sort-Object -Unique
     )
+
+    #
+    # ROMs en formato "carpeta" (PS3: "Juego.ps3", "Juego.dec.ps3", etc.):
+    # Get-RomFiles solo ve archivos, asi que esas ROMs no aparecen arriba y
+    # TODOS sus medios se tomaban por huerfanos (BUG: se movian a
+    # _duplicates aunque el juego existiera). Se anaden como nombres validos
+    # las carpetas de primer nivel con extension (nombre completo y sin la
+    # ultima extension, que es como RetroBat nombra sus medios; OJO: en las
+    # carpetas BaseName devuelve el nombre entero, por eso se usa Path).
+    #
+
+    $folderRomNames = @(
+        Get-ChildItem -LiteralPath $SystemFolder -Directory -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.Extension -ne "" -and
+                ($Global:IgnoredFolders -notcontains $_.Name)
+            } |
+            ForEach-Object { $_.Name; [System.IO.Path]::GetFileNameWithoutExtension($_.Name) }
+    )
+
+    if($folderRomNames.Count -gt 0)
+    {
+        $validBaseNames = @($validBaseNames + $folderRomNames | Sort-Object -Unique)
+    }
+
+    #
+    # Archivos de juego que el escaner no trata como ROM pero que
+    # existen (lanzadores .decomp, .wad, .mds/.mdf...): sus medios
+    # tampoco son huerfanos.
+    #
+
+    $protectedNames = @(
+        Get-ChildItem -LiteralPath $SystemFolder -File -Recurse -ErrorAction SilentlyContinue |
+            Where-Object {
+                $Global:MediaProtectExtensions -contains $_.Extension.ToLowerInvariant() -and
+                -not (@($_.DirectoryName -split '[\\/]') | Where-Object { $Global:IgnoredFolders -contains $_ })
+            } |
+            ForEach-Object { $_.BaseName }
+    )
+
+    if($protectedNames.Count -gt 0)
+    {
+        $validBaseNames = @($validBaseNames + $protectedNames | Sort-Object -Unique)
+    }
 
     $systemName = Split-Path $SystemFolder -Leaf
 

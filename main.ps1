@@ -56,12 +56,13 @@ param(
     #
     # Solo para -Action Purge: se borran las copias de _duplicates
     # que llevan este número de días o más desde que se movieron.
-    # Si no se indica, se usa PurgeDuplicatesAfterDays de
+    # Con 0 se borra TODO lo que haya en _duplicates, sin importar cuándo
+    # se movió. Si no se indica, se usa PurgeDuplicatesAfterDays de
     # Config\Settings.ps1 (90 por defecto).
     #
 
-    [ValidateRange(1, 3650)]
-    [int]$OlderThanDays = 0
+    [ValidateRange(0, 3650)]
+    [int]$OlderThanDays = -1
 
 )
 

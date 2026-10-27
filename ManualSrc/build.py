@@ -4,7 +4,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table,
                                 TableStyle, PageBreak, KeepTogether, CondPageBreak, NextPageTemplate)
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.enums import TA_LEFT, TA_JUSTIFY
 from xml.sax.saxutils import escape
 
 NAVY=colors.Color(0.1,0.23,0.36)
@@ -16,11 +16,11 @@ GRAY=colors.Color(0.33,0.33,0.33)
 S=dict(
  title=ParagraphStyle('title',fontName='Helvetica-Bold',fontSize=28,leading=34,textColor=NAVY,spaceAfter=4),
  subtitle=ParagraphStyle('subtitle',fontName='Helvetica',fontSize=14,leading=18,textColor=colors.Color(0.4,0.4,0.4),spaceAfter=18),
- para=ParagraphStyle('para',fontName='Helvetica',fontSize=10,leading=14,spaceAfter=8),
+ para=ParagraphStyle('para',fontName='Helvetica',fontSize=10,leading=14,spaceAfter=8,alignment=TA_JUSTIFY),
  toc=ParagraphStyle('toc',fontName='Helvetica',fontSize=10.5,leading=13,spaceAfter=5),
  h1=ParagraphStyle('h1',fontName='Helvetica-Bold',fontSize=16,leading=20,textColor=NAVY,spaceBefore=18,spaceAfter=9,keepWithNext=1),
  h2=ParagraphStyle('h2',fontName='Helvetica-Bold',fontSize=10,leading=13,spaceBefore=8,spaceAfter=8,keepWithNext=1),
- note=ParagraphStyle('note',fontName='Helvetica-Oblique',fontSize=9,leading=13,textColor=GRAY,leftIndent=14,spaceAfter=8),
+ note=ParagraphStyle('note',fontName='Helvetica-Oblique',fontSize=9,leading=13,textColor=GRAY,leftIndent=14,spaceAfter=8,alignment=TA_JUSTIFY),
  code=ParagraphStyle('code',fontName='Courier',fontSize=9,leading=13,textColor=colors.Color(0.2,0.2,0.2),leftIndent=14,spaceAfter=0),
  cell=ParagraphStyle('cell',fontName='Helvetica',fontSize=9.5,leading=12),
  cellb=ParagraphStyle('cellb',fontName='Helvetica-Bold',fontSize=9.5,leading=12),
@@ -65,21 +65,71 @@ def make_table(b):
     t.setStyle(TableStyle(ts))
     return t
 
-def story_from(blocks):
-    story=[]
-    first=True
+FRAME_W=489.6-12
+FRAME_H=792-64.8-57.6-12
+
+def items_from(blocks):
+    """Lista de (tipo, [flowables]); tipo = 'h1', 'h2', 'pagebreak' u 'other'."""
+    items=[]
     for b in blocks:
         ty=b['type']
         if ty=='table':
-            story.append(make_table(b)); story.append(Spacer(1,10)); continue
+            items.append(('other',[make_table(b),Spacer(1,10)])); continue
         if ty=='code':
             lines=[Paragraph(escape(ln).replace(' ','&nbsp;') or '&nbsp;',S['code']) for ln in b['lines']]
-            story.append(KeepTogether(lines+[Spacer(1,8)])); continue
+            items.append(('other',[KeepTogether(lines+[Spacer(1,8)])])); continue
         if ty=='pagebreak':
-            story.append(PageBreak()); continue
+            items.append(('pagebreak',[PageBreak()])); continue
         st=S[ty]
-        if ty=='title': story.append(Spacer(1,120))
-        story.append(Paragraph(markup(b['runs']),st))
+        fl=[]
+        if ty=='title': fl.append(Spacer(1,120))
+        fl.append(Paragraph(markup(b['runs']),st))
+        items.append((ty if ty in('h1','h2') else 'other',fl))
+    return items
+
+def height_of(flowables):
+    total=0
+    # el espacio previo del primer elemento se pierde al principio de pagina
+    if flowables and not isinstance(flowables[0],KeepTogether): total-=flowables[0].getSpaceBefore()
+    for f in flowables:
+        if isinstance(f,KeepTogether):
+            total+=height_of(f._content); continue
+        w,h=f.wrap(FRAME_W,10**6)
+        total+=h+f.getSpaceBefore()+f.getSpaceAfter()
+    return total
+
+def story_from(blocks,report=None):
+    """Ninguna seccion (h1) se parte entre paginas si cabe en una; si es mas
+    larga que una pagina, se mantiene unida cada subseccion (h2) que quepa."""
+    if report is None: report=[]
+    items=items_from(blocks)
+    story=[]
+    i=0
+    n=len(items)
+    while i<n:
+        kind,fl=items[i]
+        if kind!='h1':
+            story.extend(fl); i+=1; continue
+        # seccion: desde este h1 hasta el siguiente h1 / salto de pagina
+        label=fl[-1].text[:60] if hasattr(fl[-1],'text') else 'seccion'
+        sec=[items[i]]; i+=1
+        while i<n and items[i][0] not in('h1','pagebreak'):
+            sec.append(items[i]); i+=1
+        flat=[f for _,x in sec for f in x]
+        if height_of(flat)<=FRAME_H:
+            story.append(KeepTogether(flat)); continue
+        report.append((label,height_of(flat)/FRAME_H))
+        # demasiado larga: unir cada subseccion h2 (el preambulo va con el h1)
+        parts=[[]]
+        for k,x in sec:
+            if k=='h2' and parts[-1]: parts.append([])
+            parts[-1].extend(x)
+        for part in parts:
+            ph=height_of(part)
+            if ph<=FRAME_H: story.append(KeepTogether(part))
+            else:
+                report.append(('   subseccion: '+label,ph/FRAME_H))
+                story.extend(part)
     return story
 
 def build(blocks,out,footer,title):
@@ -93,7 +143,11 @@ def build(blocks,out,footer,title):
                         leftMargin=61.2,rightMargin=61.2,topMargin=64.8,bottomMargin=57.6)
     frame=Frame(61.2,57.6,489.6,792-64.8-57.6,leftPadding=6,rightPadding=6,topPadding=6,bottomPadding=6,id='f')
     doc.addPageTemplates([PageTemplate(id='p',frames=[frame],onPage=on_page)])
-    doc.build(story_from(blocks))
+    report=[]
+    doc.build(story_from(blocks,report))
+    if report:
+        print('Secciones mas largas que una pagina (se parten solo entre subsecciones):')
+        for label,pages in report: print('  %.1f pag. - %s'%(pages,label))
 
 def read_version():
     import os

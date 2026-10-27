@@ -1,6 +1,6 @@
 [English](README.md) | [Español](README_ES.md)
 
-CleanROMs v2.8
+CleanROMs v2.8.1
 ==============
 
 Una herramienta de línea de comandos (PowerShell) que detecta ROMs
@@ -89,7 +89,7 @@ El menú principal
     3) Limpiar imágenes/vídeos/manuales huérfanos
     4) TODO: Mover ROMs e imágenes/vídeos/manuales de TODOS los sistemas
     5) Configuración (ruta de RetroBat / idioma)
-    6) Purgar _duplicates (BORRAR copias antiguas)
+    6) Purgar _duplicates (BORRAR copias antiguas o TODO)
     7) Salir
 
 Cada acción muestra una previsualización completa y pide confirmación
@@ -151,6 +151,18 @@ referencia de configuración, los sistemas soportados, y resultados de
 pruebas reales, están incluidos en el repositorio.
 
 
+Novedades de la 2.8.1
+-----------------------
+- Sistemas y formatos nuevos de RetroBat 8.3.1.1: el sistema PS4 y los
+  formatos .ps4, .zar, .xcp, .xbox360, .68k y .sgd (en total 105 sistemas y
+  182 formatos). El detalle de lo que se añadió y lo que no, y por qué, está
+  en "Qué se añadió de RetroBat 8.3.1.1" más abajo.
+- Corregido: la limpieza de imágenes/vídeos/manuales huérfanos movía a
+  _duplicates los medios de juegos que SÍ existen pero están guardados como
+  carpeta (PS3 "Juego.ps3", PS4 "Juego.ps4") o como un archivo que el
+  programa no trata como ROM (.decomp, .wad, .mds, .mdf, .toc, .cbn...).
+  Ahora esos medios no se tocan.
+
 Novedades de la 2.8
 ---------------------
 Todo lo que sigue se explica con detalle en su propia sección más abajo.
@@ -180,8 +192,9 @@ Todo lo que sigue se explica con detalle en su propia sección más abajo.
   cambiado no se vuelven a hashear; al deduplicar hacks se saltan los
   archivos de tamaño único.
 - Purga de _duplicates (opción 6 del menú o -Action Purge): borra las copias
-  que llevan allí N días o más. Es lo único que borra archivos de verdad, y
-  siempre enseña la lista y pregunta antes. El menú pasa a tener 7 opciones.
+  que llevan allí N días o más (o TODO lo que haya, con 0). Es lo único que
+  borra archivos de verdad, y siempre enseña la lista y pregunta antes. El
+  menú pasa a tener 7 opciones.
 - Los sistemas, las extensiones de ROM y las carpetas ignoradas pasan de
   Settings.ps1 a Config\Systems.json y Config\Extensions.json, con archivos
   *.custom.json opcionales para tus propias adiciones.
@@ -193,7 +206,7 @@ Todo lo que sigue se explica con detalle en su propia sección más abajo.
 - Sistemas y formatos nuevos de la tabla de RetroBat 8.2.1: 41 sistemas más
   (Sega 32X, Atari 5200, NEC SuperGrafx, PC Engine CD, Neo Geo CD, Virtual
   Boy, VIC-20, Apple IIGS, Amiga CD32, Naomi 2, ScummVM, PICO-8...) y 63
-  formatos de ROM más, en total 104 sistemas y 176 formatos. La tabla de todo
+  formatos de ROM más, además de PlayStation 4 y 6 formatos de RetroBat 8.3.1.1, en total 105 sistemas y 182 formatos. La tabla de todo
   lo soportado, y de lo que se dejó fuera a propósito y por qué, está en
   CleanROMs_Sistemas_y_formatos.xlsx (también en inglés:
   CleanROMs_Systems_and_Formats.xlsx).
@@ -439,8 +452,9 @@ Purgar _duplicates (opción 6 del menú, -Action Purge)
 _duplicates solo crece. La opción 6 borra las copias que llevan allí N
 días o más (Config\Settings.ps1: PurgeDuplicatesAfterDays, 90 por
 defecto; el menú pregunta el número y con Intro se queda el de por
-defecto). Es lo ÚNICO que el programa borra de verdad, así que es muy
-cuidadosa:
+defecto). Escribe 0 para borrar TODO lo que haya en _duplicates ahora
+mismo, por reciente que sea (ver más abajo). Es lo ÚNICO que el programa
+borra de verdad, así que es muy cuidadosa:
 
 - La antigüedad cuenta desde que el archivo se MOVIÓ a _duplicates (se lee
   de los planes guardados en Resultado\), no desde la fecha del propio
@@ -456,6 +470,14 @@ cuidadosa:
 - Siempre enseña lo que borraría (por sistema, los archivos más antiguos y
   el tamaño total) y pide confirmación -- con -Yes no pregunta. Con
   PreviewOnly solo simula.
+- 0 días (responder 0 en el menú, o -OlderThanDays 0) = TODO: borra todos
+  los archivos de _duplicates, incluido lo que se movió hace un minuto y
+  los archivos sin fecha conocida. Úsalo para vaciar _duplicates después de
+  una limpieza con la que estés conforme. Pregunta con un mensaje más
+  fuerte ("TODOS los archivos... BORRAR DEFINITIVAMENTE") salvo que uses
+  -Yes, y PreviewOnly solo lo simula. Si ningún archivo es lo bastante
+  antiguo para los días que pediste, el programa te dice cuántos archivos
+  hay y cómo borrarlos igualmente.
 - Solo toca archivos dentro de _duplicates, elimina las carpetas que
   queden vacías y anota lo borrado en Resultado\PurgeLog_<fecha>.txt.
 - Lo purgado ya no se puede restaurar: "Deshacer" se salta lo que ya no
@@ -502,6 +524,19 @@ Qué se añadió de la tabla de RetroBat 8.2.1, y qué se dejó fuera
 - Si quieres alguno de ellos, añádelo tú en Config\Systems.custom.json /
   Config\Extensions.custom.json (ver arriba).
 
+Qué se añadió de RetroBat 8.3.1.1
+- Añadido: el sistema PS4 (carpeta ps4) y los formatos .ps4, .zar, .xcp,
+  .xbox360, .68k y .sgd (en total 105 sistemas y 182 formatos).
+- No añadido, por las mismas razones de arriba: .app, .decomp, .elf, .lnk y
+  .wad (genéricos o lanzadores) y .mds, .mdf, .toc y .cbn (acompañantes o
+  descriptores de una imagen de disco que el programa no agrupa, así que
+  parecerían duplicados de su propio juego).
+- Protección de medios: la limpieza de imágenes/vídeos/manuales huérfanos ya
+  no mueve los medios de los juegos guardados como CARPETA (PS3 "Juego.ps3",
+  PS4 "Juego.ps4") ni de los archivos no añadidos de arriba (.decomp, .wad,
+  .mds...). Antes esos medios se tomaban por huérfanos y se movían a
+  _duplicates.
+
 
 Número de versión y publicación
 --------------------------------
@@ -510,11 +545,11 @@ cabecera de cada archivo, el banner del menú, el log y los planes). Para
 publicar una versión:
 
     (1) pon el número en VERSION y haz commit
-    (2) git tag v2.8
-    (3) git push origin v2.8
+    (2) git tag v2.8.1
+    (3) git push origin v2.8.1
 
 .github\workflows\release.yml comprueba entonces que la etiqueta coincide con
-VERSION, ejecuta las comprobaciones y los tests, genera CleanRoms-v2.8.zip
+VERSION, ejecuta las comprobaciones y los tests, genera CleanRoms-v2.8.1.zip
 (y su .sha256) y publica una Release en GitHub con ambos adjuntos. También
 puedes generar el ZIP tú mismo con:  pwsh -File Tools\Build-Release.ps1
 
@@ -560,7 +595,8 @@ main.ps1 acepta:
                                       -Action Purge.
     -OlderThanDays <n>               Solo con -Action Purge: borra las
                                       copias que llevan n días o más en
-                                      _duplicates (1-3650). Por defecto:
+                                      _duplicates (0-3650; 0 = borrar TODO lo
+                                      que haya). Por defecto:
                                       PurgeDuplicatesAfterDays (90).
     -Yes                             Confirma automáticamente cada
                                       pregunta S/N, en vez de esperar a

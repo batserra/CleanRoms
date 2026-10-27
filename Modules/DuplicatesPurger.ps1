@@ -295,7 +295,11 @@ function Get-PurgeCandidates {
     param(
         [Parameter(Mandatory)][string]$Root,
         [Parameter(Mandatory)][int]$Days,
-        [datetime]$NowUtc = [datetime]::UtcNow
+        [datetime]$NowUtc = [datetime]::UtcNow,
+
+        # Todos los archivos son candidatos, sin importar cuando se movieron
+        # (los que no tienen fecha conocida tambien)
+        [switch]$All
     )
 
     $result = [PSCustomObject]@{
@@ -346,6 +350,20 @@ function Get-PurgeCandidates {
             {
                 $date = $s.SeenUtc
             }
+        }
+
+        if($All)
+        {
+            $relative = [System.IO.Path]::GetRelativePath($dupFull, $file.FullName)
+
+            $candidates += [PSCustomObject]@{
+                FullPath = $file.FullName
+                System   = ($relative -split '[\\/]')[0]
+                Size     = $file.Length
+                AgeDays  = $(if($null -ne $date) { [int][math]::Floor(($NowUtc - $date).TotalDays) } else { 0 })
+            }
+
+            continue
         }
 
         if($null -eq $date)
@@ -440,8 +458,10 @@ function Invoke-DuplicatesPurge {
         [Parameter(Mandatory)]
         [string]$Root,
 
-        # 0 = usar PurgeDuplicatesAfterDays de Settings.ps1 (90 por defecto)
-        [int]$Days = 0
+        # -1 = usar PurgeDuplicatesAfterDays de Settings.ps1 (90 por defecto)
+        #  0 = borrar TODO lo que haya en _duplicates, sin importar cuando se movio
+        # >0 = borrar lo que lleve esos dias o mas
+        [int]$Days = -1
     )
 
     $summary = [PSCustomObject]@{
@@ -451,7 +471,9 @@ function Invoke-DuplicatesPurge {
         Candidates = 0
     }
 
-    if($Days -le 0)
+    $all = ($Days -eq 0)
+
+    if($Days -lt 0)
     {
         $Days = 90
 
@@ -466,7 +488,14 @@ function Invoke-DuplicatesPurge {
 
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host (T "purge.header" $Days)
+    if($all)
+    {
+        Write-Host (T "purge.headerAll")
+    }
+    else
+    {
+        Write-Host (T "purge.header" $Days)
+    }
     Write-Host "==========================================" -ForegroundColor Cyan
 
     if(!(Test-Path -LiteralPath $dupRoot -PathType Container))
@@ -475,7 +504,7 @@ function Invoke-DuplicatesPurge {
         return $summary
     }
 
-    $found = Get-PurgeCandidates -Root $Root -Days $Days
+    $found = Get-PurgeCandidates -Root $Root -Days $Days -All:$all
 
     # Los que no tienen fecha empiezan a contar hoy (no en simulacion)
     if($found.Undated.Count -gt 0)
@@ -493,7 +522,17 @@ function Invoke-DuplicatesPurge {
 
     if($candidates.Count -eq 0)
     {
-        Write-Host (T "purge.nothing" $Days)
+        if(-not $all -and $found.TotalFiles -gt 0)
+        {
+            # Hay archivos, pero aun no llevan los dias pedidos: se explica
+            # como borrarlos igualmente (era lo que mas confundia)
+            Write-Host (T "purge.nothingButFiles" @($found.TotalFiles, $Days))
+        }
+        else
+        {
+            Write-Host (T "purge.nothing" $Days)
+        }
+
         return $summary
     }
 
@@ -536,7 +575,9 @@ function Invoke-DuplicatesPurge {
         return $summary
     }
 
-    if(-not (Confirm-YesNo "purge.confirm" @($candidates.Count, (Format-FileSize $totalBytes))))
+    $confirmKey = if($all) { "purge.confirmAll" } else { "purge.confirm" }
+
+    if(-not (Confirm-YesNo $confirmKey @($candidates.Count, (Format-FileSize $totalBytes))))
     {
         Write-Host (T "purge.cancelled")
         return $summary
@@ -631,9 +672,11 @@ function Read-PurgeDays {
         $default = [int]$Global:Settings.PurgeDuplicatesAfterDays
     }
 
+    # Devuelve -1 para "el valor de Settings.ps1" (Intro, o modo no
+    # interactivo), 0 para "TODO lo que haya ahora" y N>0 para "N dias o mas".
     if($Global:AutoConfirm)
     {
-        return 0
+        return -1
     }
 
     while($true)
@@ -642,12 +685,12 @@ function Read-PurgeDays {
 
         if($answer -eq "")
         {
-            return 0
+            return -1
         }
 
         $days = 0
 
-        if([int]::TryParse($answer, [ref]$days) -and $days -ge 1 -and $days -le 3650)
+        if([int]::TryParse($answer, [ref]$days) -and $days -ge 0 -and $days -le 3650)
         {
             return $days
         }

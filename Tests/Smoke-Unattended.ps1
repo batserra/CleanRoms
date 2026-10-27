@@ -239,6 +239,26 @@ try
     Assert-Smoke (-not $r3.TimedOut) "Undo -Yes termina solo"
     Assert-Smoke ($r3.ExitCode -eq 0) "Undo -Yes: codigo de salida 0 (fue $($r3.ExitCode))"
     Assert-Smoke (@(Get-ChildItem -LiteralPath $snes -Filter *.sfc).Count -eq 2) "Undo: las dos ROMs vuelven a su sitio"
+
+    #
+    # 4) Purga TOTAL (-OlderThanDays 0): vuelve a limpiar (mueve una ROM a
+    #    _duplicates, recien movida) y la purga la borra aunque lleve 0 dias.
+    #    (Con los dias por defecto no la habria borrado: no llega a 90 dias.)
+    #
+
+    $r4a = Invoke-Program @("-Action", "Clean", "-System", "snes", "-Yes")
+
+    Assert-Smoke ($r4a.ExitCode -eq 0) "Limpiar otra vez: codigo de salida 0 (fue $($r4a.ExitCode))"
+    Assert-Smoke (@(Get-ChildItem -LiteralPath (Join-Path $roms "_duplicates") -Recurse -File -Filter *.sfc).Count -eq 1) "Limpiar otra vez: hay una ROM recien movida en _duplicates"
+
+    $r4b = Invoke-Program @("-Action", "Purge", "-Yes")
+
+    Assert-Smoke (@(Get-ChildItem -LiteralPath (Join-Path $roms "_duplicates") -Recurse -File -Filter *.sfc).Count -eq 1) "Purga con los dias por defecto: NO borra lo recien movido"
+
+    $r4c = Invoke-Program @("-Action", "Purge", "-OlderThanDays", "0", "-Yes")
+
+    Assert-Smoke ($r4c.ExitCode -eq 0) "Purga total (-OlderThanDays 0): codigo de salida 0 (fue $($r4c.ExitCode))"
+    Assert-Smoke (@(Get-ChildItem -LiteralPath (Join-Path $roms "_duplicates") -Recurse -File -ErrorAction SilentlyContinue).Count -eq 0) "Purga total: no queda NINGUN archivo en _duplicates"
 }
 catch
 {
