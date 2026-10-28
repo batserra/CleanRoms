@@ -168,6 +168,35 @@ function New-TestRom {
 
 #------------------------------------------------------------
 
+function Get-LongPathName {
+
+    # En los runners de GitHub Windows, $env:TEMP viene en formato corto 8.3
+    # (C:\Users\RUNNER~1\...), pero el programa trabaja con las rutas largas
+    # (C:\Users\runneradmin\...). Comparar rutas como texto fallaba (el gamelist
+    # del Hack Organizer no se actualizaba y WinnerPath no coincidia). Se expande
+    # aqui para que el test y el programa hablen de la misma ruta.
+
+    param([string]$Path)
+
+    if($env:OS -ne "Windows_NT" -or $Path -notmatch '~\d') { return $Path }
+
+    try
+    {
+        if(-not ("CleanRoomsNative.PathUtil" -as [type]))
+        {
+            Add-Type -Namespace CleanRoomsNative -Name PathUtil -MemberDefinition '[DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] public static extern uint GetLongPathName(string shortPath, System.Text.StringBuilder longPath, uint bufferSize);'
+        }
+
+        $sb  = New-Object System.Text.StringBuilder 2048
+        $len = [CleanRoomsNative.PathUtil]::GetLongPathName($Path, $sb, 2048)
+
+        if($len -gt 0 -and $len -lt 2048) { return $sb.ToString() }
+    }
+    catch { }
+
+    return $Path
+}
+
 function New-TestTempFolder {
 
     # $env:TEMP solo existe en Windows; GetTempPath() vale en todos los sitios
@@ -177,6 +206,6 @@ function New-TestTempFolder {
 
     New-Item -ItemType Directory -Path $folder -Force | Out-Null
 
-    return $folder
+    return (Get-LongPathName $folder)
 
 }
